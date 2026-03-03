@@ -44,7 +44,7 @@ async function run(script: string, toolName: string) {
 
 export function registerProjectTools(server: McpServer): void {
 
-  // ── get_project_info ─────────────────────────────────────────────────────
+  // ── get_project_info ────────────────────────────────────────────────
 
   server.tool(
     "get_project_info",
@@ -75,7 +75,7 @@ export function registerProjectTools(server: McpServer): void {
     }
   );
 
-  // ── create_project ────────────────────────────────────────────────────────
+  // ── create_project ──────────────────────────────────────────────────
 
   server.tool(
     "create_project",
@@ -93,7 +93,7 @@ export function registerProjectTools(server: McpServer): void {
     }
   );
 
-  // ── save_project ──────────────────────────────────────────────────────────
+  // ── save_project ────────────────────────────────────────────────────
 
   server.tool(
     "save_project",
@@ -135,7 +135,7 @@ export function registerProjectTools(server: McpServer): void {
           "var savedPath = (app.project.file ? app.project.file.fsName : null);\n" +
           "return {\n" +
           "  success: true,\n" +
-          "  data: { message: 'Project saved.', path: savedPath }\n" +
+          '  data: { message: "Project saved.", path: savedPath }\n' +
           "};\n"
         );
       }
@@ -143,33 +143,36 @@ export function registerProjectTools(server: McpServer): void {
     }
   );
 
-  // ── open_project ──────────────────────────────────────────────────────────
+  // ── open_project ────────────────────────────────────────────────────
 
   server.tool(
     "open_project",
     "Opens an After Effects project file (.aep or .aepx) from the local " +
-      "file system. The 'path' parameter must be an absolute path. " +
-      "Any currently open unsaved project will be discarded without warning — " +
-      "save first if needed. Returns the name and path of the opened project.",
+      "file system. Provide an absolute path to an existing file. " +
+      "Any currently open unsaved changes will be discarded. " +
+      "Returns the name and path of the opened project.",
     {
       path: z
         .string()
-        .describe("Absolute path to the .aep or .aepx file to open."),
+        .describe(
+          "Absolute path to the .aep or .aepx file " +
+            "(e.g. /Users/alice/MyProject.aep)."
+        ),
     },
     async ({ path }) => {
       const safePath = escapeString(path);
       const script = wrapWithReturn(
-        'var f = new File("' + safePath + '");\n' +
-        "if (!f.exists) {\n" +
+        'var projectFile = new File("' + safePath + '");\n' +
+        "if (!projectFile.exists) {\n" +
         '  throw new Error("File not found: ' + safePath + '");\n' +
         "}\n" +
-        "app.open(f);\n" +
+        "app.open(projectFile);\n" +
         "return {\n" +
         "  success: true,\n" +
         "  data: {\n" +
-        "    message: 'Project opened.',\n" +
-        "    name: app.project.file ? app.project.file.name : '(Untitled)',\n" +
-        "    path: app.project.file ? app.project.file.fsName : null\n" +
+        '    message: "Project opened.",\n' +
+        '    name: (app.project.file ? app.project.file.name : "(Untitled)"),\n' +
+        "    path: (app.project.file ? app.project.file.fsName : null)\n" +
         "  }\n" +
         "};\n"
       );
@@ -177,51 +180,65 @@ export function registerProjectTools(server: McpServer): void {
     }
   );
 
-  // ── import_file ───────────────────────────────────────────────────────────
+  // ── import_file ───────────────────────────────────────────────────────
 
   server.tool(
     "import_file",
-    "Imports a file (image, video, audio, Illustrator/EPS, etc.) into " +
-      "the current After Effects project. " +
-      "Optionally inserts the imported footage into the first layer of a " +
-      "specified composition. " +
-      "Returns the item ID and name of the imported footage.",
+    "Imports a file into the current After Effects project. " +
+      "Supported formats include video (.mp4, .mov, .avi), images, audio " +
+      "(.wav, .mp3), Photoshop (.psd), Illustrator (.ai), and other " +
+      "AE-compatible media formats. " +
+      "If 'compId' is provided the imported item is added as a new layer at " +
+      "the top of that composition. " +
+      "Returns the imported item id, name, and type.",
     {
       path: z
         .string()
-        .describe("Absolute path to the file to import."),
-      comp_id: z
+        .describe(
+          "Absolute file-system path to the file to import " +
+            "(e.g. /Users/alice/footage.mp4)."
+        ),
+      compId: z
         .number()
         .int()
+        .positive()
         .optional()
         .describe(
-          "Optional composition ID to insert the footage into as a new layer."
+          "Optional. Numeric id of a composition to add the imported footage " +
+            "to as a new layer. Obtain ids via list_compositions."
         ),
     },
-    async ({ path, comp_id }) => {
+    async ({ path, compId }) => {
       const safePath = escapeString(path);
-      let script = wrapWithReturn(
-        "if (!app.project) {\n" +
-        '  throw new Error("No project is open.");\n' +
-        "}\n" +
+
+      const importBlock =
         'var importFile = new File("' + safePath + '");\n' +
         "if (!importFile.exists) {\n" +
         '  throw new Error("File not found: ' + safePath + '");\n' +
         "}\n" +
-        "var importOptions = new ImportOptions(importFile);\n" +
-        "var importedItem = app.project.importFile(importOptions);\n" +
-        (comp_id !== undefined
-          ? findCompById("targetComp", comp_id) +
-            "targetComp.layers.add(importedItem);\n"
-          : "") +
+        "var importOpts = new ImportOptions(importFile);\n" +
+        "var item = app.project.importFile(importOpts);\n";
+
+      const addToCompBlock =
+        compId !== undefined
+          ? findCompById("targetComp", compId) +
+            "targetComp.layers.add(item);\n"
+          : "";
+
+      const returnBlock =
         "return {\n" +
         "  success: true,\n" +
         "  data: {\n" +
-        "    id: importedItem.id,\n" +
-        "    name: importedItem.name\n" +
+        "    id: item.id,\n" +
+        "    name: item.name,\n" +
+        "    typeName: item.typeName,\n" +
+        "    addedToComp: " +
+        (compId !== undefined ? "true" : "false") +
+        "\n" +
         "  }\n" +
-        "};\n"
-      );
+        "};\n";
+
+      const script = wrapWithReturn(importBlock + addToCompBlock + returnBlock);
       return run(script, "import_file");
     }
   );

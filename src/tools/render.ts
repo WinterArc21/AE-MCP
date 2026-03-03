@@ -36,7 +36,7 @@ async function runScript(script: string, toolName: string) {
 // ---------------------------------------------------------------------------
 
 export function registerRenderTools(server: McpServer): void {
-  // ─── add_to_render_queue ──────────────────────────────────────────────────
+  // ─── add_to_render_queue ────────────────────────────────────────────────
   server.tool(
     "add_to_render_queue",
     "Add a composition to the After Effects render queue. " +
@@ -106,7 +106,7 @@ export function registerRenderTools(server: McpServer): void {
     }
   );
 
-  // ─── get_render_status ───────────────────────────────────────────────────
+  // ─── get_render_status ─────────────────────────────────────────────────
   server.tool(
     "get_render_status",
     "Get the current status of all items in the After Effects render queue. " +
@@ -151,7 +151,7 @@ export function registerRenderTools(server: McpServer): void {
     }
   );
 
-  // ─── start_render ─────────────────────────────────────────────────────────
+  // ─── start_render ───────────────────────────────────────────────────────
   server.tool(
     "start_render",
     "Start rendering all QUEUED items in the After Effects render queue. " +

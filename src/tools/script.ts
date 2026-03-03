@@ -19,7 +19,7 @@ import { bridge } from "../bridge.js";
 // ---------------------------------------------------------------------------
 
 export function registerScriptTools(server: McpServer): void {
-  // ─── run_extendscript ────────────────────────────────────────────────────
+  // ─── run_extendscript ───────────────────────────────────────────────────
   server.tool(
     "run_extendscript",
     "Execute arbitrary ExtendScript code directly inside After Effects. " +
@@ -70,6 +70,9 @@ export function registerScriptTools(server: McpServer): void {
         ),
     },
     async ({ script }) => {
+      // Wrap the user's script in a protective IIFE with try/catch.
+      // The inner IIFE ensures 'return' works correctly in the user's code.
+      // Any thrown error is returned as structured data.
       const wrappedScript =
         "(function() {\n" +
         "  try {\n" +
