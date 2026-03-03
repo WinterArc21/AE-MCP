@@ -64,7 +64,7 @@ function resolveProp(layerVar: string, propertyName: string): string {
 // ---------------------------------------------------------------------------
 
 export function registerExpressionTools(server: McpServer): void {
-  // ─── set_expression ───────────────────────────────────────────────────────
+  // ─── set_expression ────────────────────────────────────────────────────────
   server.tool(
     "set_expression",
     "Apply an expression string to a layer property. " +
@@ -148,7 +148,7 @@ export function registerExpressionTools(server: McpServer): void {
     }
   );
 
-  // ─── add_wiggle ───────────────────────────────────────────────────────────
+  // ─── add_wiggle ───────────────────────────────────────────────────────────────
   server.tool(
     "add_wiggle",
     "Apply a wiggle expression to a layer property to create organic random motion. " +
@@ -200,7 +200,7 @@ export function registerExpressionTools(server: McpServer): void {
     }
   );
 
-  // ─── add_loop ─────────────────────────────────────────────────────────────
+  // ─── add_loop ─────────────────────────────────────────────────────────────────
   server.tool(
     "add_loop",
     "Apply a loopOut() expression to a property so it repeats after the last keyframe. " +
@@ -260,7 +260,7 @@ export function registerExpressionTools(server: McpServer): void {
     }
   );
 
-  // ─── link_properties ──────────────────────────────────────────────────────
+  // ─── link_properties ─────────────────────────────────────────────────────────────
   server.tool(
     "link_properties",
     "Link a target layer property to a source layer's transform property via an expression. " +

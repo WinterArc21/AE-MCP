@@ -269,7 +269,7 @@ export function registerAnimationTools(server: McpServer): void {
     }
   );
 
-  // ─── set_all_keyframes_easing ─────────────────────────────────────────────
+  // ─── set_all_keyframes_easing ───────────────────────────────────────────────
   server.tool(
     "set_all_keyframes_easing",
     "Apply the same easing type to ALL keyframes on a property in one call. " +
@@ -310,7 +310,7 @@ export function registerAnimationTools(server: McpServer): void {
     }
   );
 
-  // ─── remove_keyframes ─────────────────────────────────────────────────────
+  // ─── remove_keyframes ───────────────────────────────────────────────────────
   server.tool(
     "remove_keyframes",
     "Remove ALL keyframes from a layer transform property, leaving a static value. " +
