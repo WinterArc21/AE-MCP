@@ -68,7 +68,7 @@ function getLayer(
     indexExpr +
     ' + " is out of range (1-based, comp has " + ' +
     compVar +
-    '.numLayers + " layers)");\n' +
+    '.numLayers + " layers).");\n' +
     "}\n" +
     "var " +
     layerVar +
@@ -110,7 +110,7 @@ function layerBase(v: string): string {
 
 export function registerLayerTools(server: McpServer): void {
 
-  // ── add_solid_layer ───────────────────────────────────────────────────────
+  // ── add_solid_layer ────────────────────────────────────────────────────────
 
   server.tool(
     "add_solid_layer",
@@ -213,7 +213,7 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── add_text_layer ────────────────────────────────────────────────────────
+  // ── add_text_layer ─────────────────────────────────────────────────────────
 
   server.tool(
     "add_text_layer",
@@ -278,6 +278,7 @@ export function registerLayerTools(server: McpServer): void {
       italic,
       justification,
     }) => {
+      // Resolve font style string
       let fontStyle = "Regular";
       if (bold && italic) {
         fontStyle = "BoldItalic";
@@ -353,7 +354,7 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── add_shape_layer ───────────────────────────────────────────────────────
+  // ── add_shape_layer ────────────────────────────────────────────────────────
 
   server.tool(
     "add_shape_layer",
@@ -447,6 +448,7 @@ export function registerLayerTools(server: McpServer): void {
           ? "[" + position[0] + ", " + position[1] + "]"
           : "[comp.width / 2, comp.height / 2]";
 
+      // Shape-specific geometry
       let geomLines = "";
       if (shapeType === "rectangle") {
         geomLines =
@@ -466,6 +468,7 @@ export function registerLayerTools(server: McpServer): void {
           '  geom.property("Position").setValue([0, 0]);\n' +
           "  geom.property(\"Outer Radius\").setValue(" + outerR + ");\n";
       } else {
+        // star
         geomLines =
           '  var geom = shapeGroup.property("Contents").addProperty("ADBE Vector Shape - Star");\n' +
           '  geom.property("Type").setValue(1);\n' +
@@ -519,7 +522,7 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── add_null_layer ────────────────────────────────────────────────────────
+  // ── add_null_layer ─────────────────────────────────────────────────────────
 
   server.tool(
     "add_null_layer",
@@ -567,7 +570,7 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── add_adjustment_layer ──────────────────────────────────────────────────
+  // ── add_adjustment_layer ───────────────────────────────────────────────────
 
   server.tool(
     "add_adjustment_layer",
@@ -612,7 +615,7 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── list_layers ───────────────────────────────────────────────────────────
+  // ── list_layers ────────────────────────────────────────────────────────────
 
   server.tool(
     "list_layers",
@@ -665,7 +668,7 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── get_layer_info ────────────────────────────────────────────────────────
+  // ── get_layer_info ─────────────────────────────────────────────────────────
 
   server.tool(
     "get_layer_info",
@@ -692,6 +695,7 @@ export function registerLayerTools(server: McpServer): void {
       const script = wrapWithReturn(
         findCompById(String(compId), "comp") +
           getLayer("comp", String(layerIndex), "layer") +
+          // Type detection
           'var typeLabel = "AV";\n' +
           'if (layer instanceof TextLayer) { typeLabel = "Text"; }\n' +
           'else if (layer instanceof ShapeLayer) { typeLabel = "Shape"; }\n' +
@@ -701,6 +705,7 @@ export function registerLayerTools(server: McpServer): void {
           '  if (layer.nullLayer) { typeLabel = "Null"; }\n' +
           '  else if (layer.adjustmentLayer) { typeLabel = "Adjustment"; }\n' +
           "}\n" +
+          // Transform values — wrapped in try for camera/light layers
           "var position = null;\n" +
           "var scale = null;\n" +
           "var rotation = null;\n" +
@@ -714,6 +719,7 @@ export function registerLayerTools(server: McpServer): void {
           '  opacity = xf.property("Opacity").value;\n' +
           '  anchorPoint = xf.property("Anchor Point").value;\n' +
           "} catch (xfErr) {}\n" +
+          // Effects list
           "var effectsList = [];\n" +
           "try {\n" +
           '  var fx = layer.property("Effects");\n' +
@@ -722,6 +728,7 @@ export function registerLayerTools(server: McpServer): void {
           "    effectsList.push({ name: eff.name, matchName: eff.matchName, enabled: eff.enabled });\n" +
           "  }\n" +
           "} catch (fxErr) {}\n" +
+          // Parent info
           "var parentIndex = null;\n" +
           "var parentName = null;\n" +
           "try {\n" +
@@ -761,17 +768,18 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── set_layer_properties ──────────────────────────────────────────────────
+  // ── set_layer_properties ───────────────────────────────────────────────────
 
   server.tool(
     "set_layer_properties",
-    "Updates one or more properties of an existing layer. " +
-      "All parameters except compId and layerIndex are optional; " +
-      "only the fields you provide will be changed. " +
-      "Transform values: position [x,y], scale [x,y] (percent), " +
-      "rotation (degrees), opacity (0-100), anchorPoint [x,y]. " +
-      "Time values: inPoint and outPoint in seconds. " +
-      "Returns the updated layer state.",
+    "Updates one or more properties on an existing layer. " +
+      "All parameters except compId and layerIndex are optional — only " +
+      "provided values are changed. " +
+      "Transform: position=[x,y]px; scale=[x%,y%] (100=100%); " +
+      "rotation=degrees (positive=clockwise); opacity=0-100; " +
+      "anchorPoint=[x,y]px. " +
+      "Time: startTime, inPoint, outPoint are seconds relative to the comp. " +
+      "Returns the layer's current properties after the update.",
     {
       compId: z
         .number()
@@ -782,116 +790,121 @@ export function registerLayerTools(server: McpServer): void {
         .number()
         .int()
         .positive()
-        .describe("1-based index of the layer to update."),
+        .describe("1-based index of the layer to modify."),
       name: z.string().optional().describe("New layer name."),
       enabled: z
         .boolean()
         .optional()
-        .describe("Toggle layer visibility (true = visible)."),
-      solo: z.boolean().optional().describe("Toggle solo state."),
-      shy: z.boolean().optional().describe("Toggle shy flag."),
-      locked: z.boolean().optional().describe("Toggle lock state."),
+        .describe("Layer visibility (true = visible)."),
       position: z
         .array(z.number())
         .length(2)
         .optional()
-        .describe("New position [x, y] in pixels."),
+        .describe("Transform position [x, y] in pixels."),
       scale: z
         .array(z.number())
         .length(2)
         .optional()
-        .describe("New scale [x, y] in percent (100 = original size)."),
+        .describe(
+          "Transform scale [x%, y%] where 100 means 100% (original size)."
+        ),
       rotation: z
         .number()
         .optional()
-        .describe("New rotation in degrees."),
+        .describe("Transform rotation in degrees. Positive = clockwise."),
       opacity: z
         .number()
         .min(0)
         .max(100)
         .optional()
-        .describe("New opacity 0-100."),
+        .describe("Transform opacity 0-100."),
       anchorPoint: z
         .array(z.number())
         .length(2)
         .optional()
-        .describe("New anchor point [x, y] in pixels."),
-      inPoint: z
-        .number()
-        .optional()
-        .describe("New in-point in seconds."),
-      outPoint: z
-        .number()
-        .optional()
-        .describe("New out-point in seconds."),
+        .describe("Transform anchor point [x, y] in pixels."),
       startTime: z
         .number()
         .optional()
-        .describe("New start time in seconds."),
+        .describe("Layer start time offset in seconds."),
+      inPoint: z
+        .number()
+        .optional()
+        .describe("Layer in-point (trim start) in seconds."),
+      outPoint: z
+        .number()
+        .optional()
+        .describe("Layer out-point (trim end) in seconds."),
     },
     async ({
       compId,
       layerIndex,
       name,
       enabled,
-      solo,
-      shy,
-      locked,
       position,
       scale,
       rotation,
       opacity,
       anchorPoint,
+      startTime,
       inPoint,
       outPoint,
-      startTime,
     }) => {
-      let setLines = "";
-      if (name !== undefined)
-        setLines += '  layer.name = "' + escapeString(name) + '";\n';
-      if (enabled !== undefined)
-        setLines += "  layer.enabled = " + enabled + ";\n";
-      if (solo !== undefined) setLines += "  layer.solo = " + solo + ";\n";
-      if (shy !== undefined) setLines += "  layer.shy = " + shy + ";\n";
-      if (locked !== undefined)
-        setLines += "  layer.locked = " + locked + ";\n";
-      if (position !== undefined)
-        setLines +=
-          '  layer.property("Transform").property("Position").setValue([' +
-          position[0] +
-          ", " +
-          position[1] +
-          "]);\n";
-      if (scale !== undefined)
-        setLines +=
-          '  layer.property("Transform").property("Scale").setValue([' +
-          scale[0] +
-          ", " +
-          scale[1] +
-          "]);\n";
-      if (rotation !== undefined)
-        setLines +=
-          '  layer.property("Transform").property("Rotation").setValue(' +
-          rotation +
-          ");\n";
-      if (opacity !== undefined)
-        setLines +=
-          '  layer.property("Transform").property("Opacity").setValue(' +
-          opacity +
-          ");\n";
-      if (anchorPoint !== undefined)
-        setLines +=
-          '  layer.property("Transform").property("Anchor Point").setValue([' +
-          anchorPoint[0] +
-          ", " +
-          anchorPoint[1] +
-          "]);\n";
-      if (inPoint !== undefined)
-        setLines += "  layer.inPoint = " + inPoint + ";\n";
-      if (outPoint !== undefined)
-        setLines += "  layer.outPoint = " + outPoint + ";\n";
-      if (startTime !== undefined)
-        setLines += "  layer.startTime = " + startTime + ";\n";
+      const basicLines: string[] = [];
+      if (name !== undefined) {
+        basicLines.push('  layer.name = "' + escapeString(name) + '";\n');
+      }
+      if (enabled !== undefined) {
+        basicLines.push("  layer.enabled = " + enabled + ";\n");
+      }
+      if (startTime !== undefined) {
+        basicLines.push("  layer.startTime = " + startTime + ";\n");
+      }
+      if (inPoint !== undefined) {
+        basicLines.push("  layer.inPoint = " + inPoint + ";\n");
+      }
+      if (outPoint !== undefined) {
+        basicLines.push("  layer.outPoint = " + outPoint + ";\n");
+      }
+
+      const xfLines: string[] = [];
+      if (position !== undefined) {
+        xfLines.push(
+          '    xf.property("Position").setValue([' +
+            position[0] +
+            ", " +
+            position[1] +
+            "]);\n"
+        );
+      }
+      if (scale !== undefined) {
+        xfLines.push(
+          '    xf.property("Scale").setValue([' + scale[0] + ", " + scale[1] + "]);\n"
+        );
+      }
+      if (rotation !== undefined) {
+        xfLines.push('    xf.property("Rotation").setValue(' + rotation + ");\n");
+      }
+      if (opacity !== undefined) {
+        xfLines.push('    xf.property("Opacity").setValue(' + opacity + ");\n");
+      }
+      if (anchorPoint !== undefined) {
+        xfLines.push(
+          '    xf.property("Anchor Point").setValue([' +
+            anchorPoint[0] +
+            ", " +
+            anchorPoint[1] +
+            "]);\n"
+        );
+      }
+
+      const xfBlock =
+        xfLines.length > 0
+          ? "  try {\n" +
+            '    var xf = layer.property("Transform");\n' +
+            xfLines.join("") +
+            "  } catch (xfErr) {}\n"
+          : "";
 
       const script = wrapWithReturn(
         'app.beginUndoGroup("set_layer_properties");\n' +
@@ -900,8 +913,11 @@ export function registerLayerTools(server: McpServer): void {
           "  " +
           findCompById(String(compId), "comp").split("\n").join("\n  ") +
           "  " +
-          getLayer("comp", String(layerIndex)).split("\n").join("\n  ") +
-          setLines +
+          getLayer("comp", String(layerIndex), "layer")
+            .split("\n")
+            .join("\n  ") +
+          basicLines.join("") +
+          xfBlock +
           "  __r = { success: true, data: " +
           layerBase("layer") +
           " };\n" +
@@ -914,15 +930,15 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── delete_layer ──────────────────────────────────────────────────────────
+  // ── delete_layer ───────────────────────────────────────────────────────────
 
   server.tool(
     "delete_layer",
     "Permanently removes a layer from a composition. " +
-      "This action cannot be undone programmatically (it is wrapped in an " +
-      "undo group so the user can Ctrl/Cmd+Z inside AE). " +
-      "Layer indices shift after deletion — re-query list_layers if needed. " +
-      "Returns { success: true, deletedIndex, deletedName }.",
+      "This action is undoable in After Effects (Cmd/Ctrl+Z). " +
+      "After deletion, layers that were below the removed one shift up by " +
+      "one index — re-query list_layers if you need accurate indices. " +
+      "Returns the index and name of the deleted layer.",
     {
       compId: z
         .number()
@@ -933,7 +949,7 @@ export function registerLayerTools(server: McpServer): void {
         .number()
         .int()
         .positive()
-        .describe("1-based index of the layer to remove."),
+        .describe("1-based index of the layer to delete."),
     },
     async ({ compId, layerIndex }) => {
       const script = wrapWithReturn(
@@ -943,7 +959,9 @@ export function registerLayerTools(server: McpServer): void {
           "  " +
           findCompById(String(compId), "comp").split("\n").join("\n  ") +
           "  " +
-          getLayer("comp", String(layerIndex)).split("\n").join("\n  ") +
+          getLayer("comp", String(layerIndex), "layer")
+            .split("\n")
+            .join("\n  ") +
           "  var deletedIndex = layer.index;\n" +
           "  var deletedName = layer.name;\n" +
           "  layer.remove();\n" +
@@ -957,14 +975,14 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── duplicate_layer ───────────────────────────────────────────────────────
+  // ── duplicate_layer ────────────────────────────────────────────────────────
 
   server.tool(
     "duplicate_layer",
-    "Creates a copy of a layer within the same composition. " +
-      "The duplicate is placed directly above the original (index - 1). " +
-      "All properties, effects, and keyframes are copied. " +
-      "Returns the new (duplicate) layer's index and name.",
+    "Duplicates a layer within the same composition. " +
+      "After Effects places the duplicate at the top of the layer stack " +
+      "(index 1). Use reorder_layer to move it if needed. " +
+      "Returns the duplicate layer's new index and name.",
     {
       compId: z
         .number()
@@ -976,20 +994,8 @@ export function registerLayerTools(server: McpServer): void {
         .int()
         .positive()
         .describe("1-based index of the layer to duplicate."),
-      newName: z
-        .string()
-        .optional()
-        .describe(
-          "Optional name for the duplicate. " +
-            'Defaults to the original name with " copy" appended (AE behavior).'
-        ),
     },
-    async ({ compId, layerIndex, newName }) => {
-      const renameBlock =
-        newName !== undefined
-          ? '  dupeLayer.name = "' + escapeString(newName) + '";\n'
-          : "";
-
+    async ({ compId, layerIndex }) => {
       const script = wrapWithReturn(
         'app.beginUndoGroup("duplicate_layer");\n' +
           "var __r;\n" +
@@ -997,11 +1003,12 @@ export function registerLayerTools(server: McpServer): void {
           "  " +
           findCompById(String(compId), "comp").split("\n").join("\n  ") +
           "  " +
-          getLayer("comp", String(layerIndex)).split("\n").join("\n  ") +
-          "  var dupeLayer = layer.duplicate();\n" +
-          renameBlock +
+          getLayer("comp", String(layerIndex), "layer")
+            .split("\n")
+            .join("\n  ") +
+          "  var dup = layer.duplicate();\n" +
           "  __r = { success: true, data: " +
-          layerBase("dupeLayer") +
+          layerBase("dup") +
           " };\n" +
           "} finally {\n" +
           "  app.endUndoGroup();\n" +
@@ -1012,42 +1019,50 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── set_layer_parent ──────────────────────────────────────────────────────
+  // ── set_layer_parent ───────────────────────────────────────────────────────
 
   server.tool(
     "set_layer_parent",
-    "Assigns a parent layer to a child layer, or removes the parent " +
-      "by passing parentIndex = 0. " +
-      "When a layer has a parent, its transforms become relative to the " +
-      "parent — moving/rotating/scaling the parent affects all children. " +
-      "Null layers are commonly used as parent controllers. " +
-      "Returns the updated child layer info.",
+    "Sets or removes the parent of a layer. " +
+      "When a parent is assigned, the child's transform properties become " +
+      "relative to the parent, enabling hierarchical animation rigs. " +
+      "Pass parentIndex as null to remove an existing parent. " +
+      "Both indices are 1-based. A layer cannot be its own parent.",
     {
       compId: z
         .number()
         .int()
         .positive()
         .describe("Numeric id of the composition."),
-      layerIndex: z
+      childIndex: z
         .number()
         .int()
         .positive()
-        .describe("1-based index of the CHILD layer."),
+        .describe("1-based index of the child layer."),
       parentIndex: z
         .number()
         .int()
-        .min(0)
+        .positive()
+        .nullable()
         .describe(
-          "1-based index of the PARENT layer, or 0 to remove the parent."
+          "1-based index of the parent layer, or null to remove the parent."
         ),
     },
-    async ({ compId, layerIndex, parentIndex }) => {
-      const parentBlock =
-        parentIndex === 0
-          ? "  layer.parent = null;\n"
-          : "  " +
-            getLayer("comp", String(parentIndex), "parentLayer").split("\n").join("\n  ") +
-            "  layer.parent = parentLayer;\n";
+    async ({ compId, childIndex, parentIndex }) => {
+      let parentBlock: string;
+      if (parentIndex === null || parentIndex === undefined) {
+        parentBlock = "  childLayer.parent = null;\n";
+      } else {
+        parentBlock =
+          "  " +
+          getLayer("comp", String(parentIndex), "parentLayer")
+            .split("\n")
+            .join("\n  ") +
+          "  if (childLayer.index === parentLayer.index) {\n" +
+          '    throw new Error("A layer cannot be its own parent.");\n' +
+          "  }\n" +
+          "  childLayer.parent = parentLayer;\n";
+      }
 
       const script = wrapWithReturn(
         'app.beginUndoGroup("set_layer_parent");\n' +
@@ -1056,11 +1071,21 @@ export function registerLayerTools(server: McpServer): void {
           "  " +
           findCompById(String(compId), "comp").split("\n").join("\n  ") +
           "  " +
-          getLayer("comp", String(layerIndex)).split("\n").join("\n  ") +
+          getLayer("comp", String(childIndex), "childLayer")
+            .split("\n")
+            .join("\n  ") +
           parentBlock +
-          "  __r = { success: true, data: " +
-          layerBase("layer") +
-          " };\n" +
+          "  var newParentIdx = (childLayer.parent ? childLayer.parent.index : null);\n" +
+          "  var newParentName = (childLayer.parent ? childLayer.parent.name : null);\n" +
+          "  __r = {\n" +
+          "    success: true,\n" +
+          "    data: {\n" +
+          "      childIndex: childLayer.index,\n" +
+          "      childName: childLayer.name,\n" +
+          "      parentIndex: newParentIdx,\n" +
+          "      parentName: newParentName\n" +
+          "    }\n" +
+          "  };\n" +
           "} finally {\n" +
           "  app.endUndoGroup();\n" +
           "}\n" +
@@ -1070,14 +1095,14 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── reorder_layer ─────────────────────────────────────────────────────────
+  // ── reorder_layer ──────────────────────────────────────────────────────────
 
   server.tool(
     "reorder_layer",
-    "Moves a layer to a different position in the stacking order. " +
-      "newIndex is the 1-based target position (1 = top of stack). " +
-      "Other layers shift to accommodate. " +
-      "Returns the layer's new index after the move.",
+    "Moves a layer to a new position in the stacking order of a composition. " +
+      "Index 1 is the topmost layer (rendered on top of all others). " +
+      "newIndex is clamped to [1, numLayers]. " +
+      "Returns the layer name and its actual new index after the move.",
     {
       compId: z
         .number()
@@ -1093,7 +1118,9 @@ export function registerLayerTools(server: McpServer): void {
         .number()
         .int()
         .positive()
-        .describe("Target 1-based index for the layer."),
+        .describe(
+          "Target 1-based index. 1 = move to top, comp.numLayers = move to bottom."
+        ),
     },
     async ({ compId, layerIndex, newIndex }) => {
       const script = wrapWithReturn(
@@ -1103,9 +1130,21 @@ export function registerLayerTools(server: McpServer): void {
           "  " +
           findCompById(String(compId), "comp").split("\n").join("\n  ") +
           "  " +
-          getLayer("comp", String(layerIndex)).split("\n").join("\n  ") +
-          "  layer.moveToIndex(" + newIndex + ");\n" +
-          "  __r = { success: true, data: { newIndex: layer.index, name: layer.name } };\n" +
+          getLayer("comp", String(layerIndex), "layer")
+            .split("\n")
+            .join("\n  ") +
+          "  var target = " +
+          newIndex +
+          ";\n" +
+          "  if (target < 1) { target = 1; }\n" +
+          "  if (target > comp.numLayers) { target = comp.numLayers; }\n" +
+          "  layer.moveToBeginning();\n" +
+          "  for (var mi = 1; mi < target; mi++) {\n" +
+          "    var nextIdx = (mi + 1 <= comp.numLayers ? mi + 1 : comp.numLayers);\n" +
+          "    var nextLayer = comp.layer(nextIdx);\n" +
+          "    if (nextLayer.index !== layer.index) { layer.moveAfter(nextLayer); }\n" +
+          "  }\n" +
+          "  __r = { success: true, data: { name: layer.name, newIndex: layer.index } };\n" +
           "} finally {\n" +
           "  app.endUndoGroup();\n" +
           "}\n" +
