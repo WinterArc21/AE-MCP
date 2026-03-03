@@ -48,7 +48,7 @@ async function runScript(script: string, toolName: string) {
 // ---------------------------------------------------------------------------
 
 export function registerMotionDesignTools(server: McpServer): void {
-  // ─── apply_fade_in ────────────────────────────────────────────────────────
+  // ─── apply_fade_in ───────────────────────────────────────────────────────────
   server.tool(
     "apply_fade_in",
     "Animate a layer's opacity from 0% to 100% (fade in). " +
@@ -101,7 +101,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── apply_fade_out ───────────────────────────────────────────────────────
+  // ─── apply_fade_out ───────────────────────────────────────────────────────────
   server.tool(
     "apply_fade_out",
     "Animate a layer's opacity from 100% to 0% (fade out). " +
@@ -152,7 +152,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── apply_slide_in ───────────────────────────────────────────────────────
+  // ─── apply_slide_in ───────────────────────────────────────────────────────────
   server.tool(
     "apply_slide_in",
     "Animate a layer sliding in from off-screen to its current position. " +
@@ -195,16 +195,19 @@ export function registerMotionDesignTools(server: McpServer): void {
       const body =
         findCompById("comp", compId) +
         findLayerByIndex("layer", "comp", layerIndex) +
+        // Capture resting position at time 0
         "var _slRest = " + posPropExpr + ".valueAtTime(0, false);\n" +
         "var _sl_t0 = " + t0Expr + ";\n" +
         "var _sl_t1 = _sl_t0 + " + duration + ";\n" +
         "var _slStartX = _slRest[0] + (" + offsetX + ");\n" +
         "var _slStartY = _slRest[1] + (" + offsetY + ");\n" +
+        // Keyframe 0: off-screen start
         posPropExpr + ".setValueAtTime(_sl_t0, [_slStartX, _slStartY]);\n" +
         "var _slKf0 = " + posPropExpr + ".nearestKeyIndex(_sl_t0);\n" +
         "var _slEase0 = new KeyframeEase(0, 33);\n" +
         posPropExpr + ".setInterpolationTypeAtKey(_slKf0, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);\n" +
         posPropExpr + ".setTemporalEaseAtKey(_slKf0, [_slEase0], [_slEase0]);\n" +
+        // Keyframe 1: resting position
         posPropExpr + ".setValueAtTime(_sl_t1, [_slRest[0], _slRest[1]]);\n" +
         "var _slKf1 = " + posPropExpr + ".nearestKeyIndex(_sl_t1);\n" +
         "var _slEase1 = new KeyframeEase(0, 33);\n" +
@@ -221,7 +224,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── apply_scale_in ───────────────────────────────────────────────────────
+  // ─── apply_scale_in ───────────────────────────────────────────────────────────
   server.tool(
     "apply_scale_in",
     "Animate a layer's scale from a starting percentage to 100% (normal size). " +
@@ -278,7 +281,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── apply_bounce_in ──────────────────────────────────────────────────────
+  // ─── apply_bounce_in ──────────────────────────────────────────────────────────
   server.tool(
     "apply_bounce_in",
     "Apply a spring-physics bouncy scale entrance to a layer. " +
@@ -304,6 +307,7 @@ export function registerMotionDesignTools(server: McpServer): void {
       const t0Expr = startTime !== undefined ? String(startTime) : "layer.inPoint";
       const scalePropExpr = transformProp("layer", "Scale");
 
+      // Spring keyframe data: [fraction of duration, scale value]
       const kfData: Array<[number, number]> = [
         [0.00, 0],
         [0.40, 120],
@@ -342,7 +346,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── apply_typewriter ─────────────────────────────────────────────────────
+  // ─── apply_typewriter ─────────────────────────────────────────────────────────
   server.tool(
     "apply_typewriter",
     "Apply a typewriter (character-by-character reveal) effect to a text layer. " +
@@ -372,6 +376,7 @@ export function registerMotionDesignTools(server: McpServer): void {
       const startExpr =
         startTime !== undefined ? String(startTime) : "thisLayer.inPoint";
 
+      // AE expression (modern JS — runs in expression engine, not ExtendScript)
       const expression =
         "var fullText = thisLayer.text.sourceText.toString();\n" +
         "var dur = " + duration + ";\n" +
@@ -400,7 +405,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── apply_color_theme ────────────────────────────────────────────────────
+  // ─── apply_color_theme ──────────────────────────────────────────────────────────
   server.tool(
     "apply_color_theme",
     "Create a 'Color Theme' null layer with 5 Color expression controls: " +
@@ -459,7 +464,7 @@ export function registerMotionDesignTools(server: McpServer): void {
     }
   );
 
-  // ─── create_scene ─────────────────────────────────────────────────────────
+  // ─── create_scene ───────────────────────────────────────────────────────────────
   server.tool(
     "create_scene",
     "Batch-create multiple layers in a composition in a single call. " +
