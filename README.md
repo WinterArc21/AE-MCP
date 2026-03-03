@@ -2,6 +2,8 @@
 
 AI-powered motion design automation for Adobe After Effects. Connect Claude, Cursor, or any MCP-compatible AI assistant directly to After Effects.
 
+**v2.0.0** — 75+ tools across 17 modules, agent knowledge base, and Cursor AI integration.
+
 ## How it works
 
 ```
@@ -74,9 +76,11 @@ Add to `.cursor/mcp.json` in your project:
 }
 ```
 
+Cursor users also benefit from the included `.cursorrules` file, which gives the Cursor AI agent deep context about After Effects workflows, tool usage patterns, and motion design best practices.
+
 Replace `/path/to/ae-mcp` with the actual path to this directory.
 
-## Available Tools (44 total)
+## Available Tools (75+ total)
 
 ### Project Management (5 tools)
 | Tool | Description |
@@ -142,6 +146,73 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `apply_color_theme` | Set consistent colors across layers |
 | `create_scene` | Create a full scene with background + title + subtitle |
 
+### Effects (7 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `add_effect` | Add any After Effects effect to a layer by match name |
+| `set_effect_property` | Set a property value on an applied effect |
+| `get_effect_properties` | Get all properties of an applied effect |
+| `remove_effect` | Remove an effect from a layer |
+| `enable_effect` | Enable or disable an effect |
+| `duplicate_effect` | Duplicate an applied effect |
+| `reorder_effect` | Change the order of effects on a layer |
+
+### Blend Modes (2 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `set_blend_mode` | Set the blending mode on a layer |
+| `set_track_matte` | Configure track matte (alpha, luma) between layers |
+
+### Masks (4 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `add_mask` | Add a mask (rectangle, ellipse, or path) to a layer |
+| `set_mask_properties` | Set mask feather, opacity, expansion, and mode |
+| `remove_mask` | Remove a mask from a layer |
+| `set_mask_path` | Update the path vertices of an existing mask |
+
+### 3D (4 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `set_layer_3d` | Toggle a layer's 3D switch |
+| `add_camera` | Add a camera layer to the composition |
+| `add_light` | Add a light layer (ambient, spot, point, parallel) |
+| `set_camera_properties` | Configure camera zoom, depth of field, and focus |
+
+### Text Animators (2 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `add_text_animator` | Add a text animator with range selector and properties |
+| `set_text_animator_property` | Update properties of an existing text animator |
+
+### Shape Operations (4 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `add_shape_group` | Add a shape group to an existing shape layer |
+| `set_shape_fill` | Set the fill color and opacity of a shape |
+| `set_shape_stroke` | Set the stroke color, width, and style of a shape |
+| `add_shape_path` | Add a custom Bezier path to a shape group |
+
+### Pre-compositions (2 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `precompose_layers` | Pre-compose selected layers into a new composition |
+| `open_precomp` | Open a pre-comp in its own composition panel |
+
+### Markers (2 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `add_comp_marker` | Add a composition marker at a specified time |
+| `add_layer_marker` | Add a marker to a specific layer |
+
+### Layer Settings (4 tools) — NEW
+| Tool | Description |
+|------|-------------|
+| `set_layer_quality` | Set render quality (best, draft, wireframe) |
+| `set_motion_blur` | Enable or disable motion blur on a layer |
+| `set_frame_blending` | Configure frame blending mode |
+| `set_layer_collapse` | Toggle the collapse transformations switch |
+
 ### Rendering (3 tools)
 | Tool | Description |
 |------|-------------|
@@ -153,6 +224,36 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | Tool | Description |
 |------|-------------|
 | `run_extendscript` | Execute raw ExtendScript (escape hatch for advanced use) |
+
+## Agent Knowledge Base
+
+The `docs/` folder is a structured knowledge base designed for AI agents. It provides reference material that agents can consult to produce higher-quality, more idiomatic After Effects output — without needing to guess at effect names, expression syntax, or design conventions.
+
+### docs/effects/ — Effect References (41 files)
+Per-effect documentation covering match names, property names, value ranges, and usage notes for the most commonly used After Effects built-in effects. AI agents use these to call `add_effect` and `set_effect_property` with correct parameters the first time.
+
+### docs/expressions/ — Expression Recipes (6 files)
+| File | Contents |
+|------|----------|
+| `README.md` | Overview of the expression system and how to apply recipes |
+| `time-based.md` | Time-driven expressions (clocks, countdowns, offsets) |
+| `motion.md` | Motion expressions (wiggle, inertia, spring, follow) |
+| `text.md` | Text expressions (dynamic strings, number counters) |
+| `color.md` | Color expressions (HSL shifts, reactive color, gradients) |
+| `utility.md` | Utility expressions (index offsets, conditionals, math helpers) |
+
+### docs/templates/ — Scene Templates (6 files)
+| File | Contents |
+|------|----------|
+| `README.md` | How to instantiate and customize templates |
+| `lower-third.md` | Animated lower-third with name + title fields |
+| `title-card.md` | Full-screen title card with reveal animation |
+| `data-card.md` | Data visualization card for stats and metrics |
+| `logo-reveal.md` | Logo reveal with customizable animation style |
+| `social-story.md` | Vertical 9:16 social story layout |
+
+### docs/best-practices.md
+Comprehensive design guidelines covering timing, easing curves, typography, color usage, layer organization, and output settings. Agents reference this to make opinionated, professional-quality decisions rather than defaulting to arbitrary values.
 
 ## File Bridge Protocol
 
@@ -185,26 +286,41 @@ npm run typecheck
 ```
 ae-mcp/
 ├── src/
-│   ├── index.ts              # Entry point — registers all tools, starts server
-│   ├── bridge.ts             # AEBridge class — file-based command/response
-│   ├── script-builder.ts     # ES3 ExtendScript code builder helpers
+│   ├── index.ts
+│   ├── bridge.ts
+│   ├── script-builder.ts
 │   └── tools/
-│       ├── project.ts        # Project management tools
-│       ├── composition.ts    # Composition tools
-│       ├── layer.ts          # Layer creation & manipulation
-│       ├── animation.ts      # Keyframe & easing tools
-│       ├── expression.ts     # Expression tools
-│       ├── motion-design.ts  # High-level motion presets
-│       ├── render.ts         # Render queue tools
-│       └── script.ts         # Raw ExtendScript execution
+│       ├── project.ts
+│       ├── composition.ts
+│       ├── layer.ts
+│       ├── animation.ts
+│       ├── expression.ts
+│       ├── motion-design.ts
+│       ├── render.ts
+│       ├── script.ts
+│       ├── effects.ts          # NEW
+│       ├── blend-modes.ts      # NEW
+│       ├── masks.ts            # NEW
+│       ├── three-d.ts          # NEW
+│       ├── text-animators.ts   # NEW
+│       ├── shape-operations.ts # NEW
+│       ├── precomp.ts          # NEW
+│       ├── markers.ts          # NEW
+│       └── layer-settings.ts   # NEW
 ├── cep-extension/
-│   ├── CSXS/manifest.xml     # CEP bundle manifest
-│   ├── .debug                # Debug signing override
-│   ├── index.html            # Panel UI (status, stats, log)
-│   ├── js/CSInterface.js     # Adobe CSInterface library
-│   └── jsx/host.jsx          # ExtendScript executor (ES3)
+│   ├── CSXS/manifest.xml
+│   ├── .debug
+│   ├── index.html
+│   ├── js/CSInterface.js
+│   └── jsx/host.jsx
+├── docs/                       # NEW — Agent Knowledge Base
+│   ├── effects/                # 41 effect reference docs
+│   ├── expressions/            # Expression recipes
+│   ├── templates/              # Scene templates
+│   └── best-practices.md       # Design guidelines
 ├── scripts/
-│   └── install-extension.js  # One-click CEP install + debug mode
+│   └── install-extension.js
+├── .cursorrules                # NEW — Cursor AI agent rules
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -231,7 +347,7 @@ ae-mcp/
 
 ## Credits
 
-Bridge architecture inspired by [p10q/ae-mcp](https://github.com/p10q/ae-mcp). Extended with motion design tools, batch operations, and high-level animation presets for AI-driven video production workflows.
+Bridge architecture inspired by [p10q/ae-mcp](https://github.com/p10q/ae-mcp). Extended with motion design tools, batch operations, high-level animation presets, effects system, 3D/camera support, and an agent knowledge base for AI-driven video production workflows.
 
 ## License
 
