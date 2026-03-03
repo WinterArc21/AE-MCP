@@ -258,6 +258,9 @@ function processCommands() {
     }
 
     // Retrieve all *.json files in the folder.
+    // getFiles("*.json") returns files whose names end with .json —
+    // this includes .json.response and .json.processed on some platforms
+    // if the filter is handled naively, so we post-filter below.
     var allFiles;
     try {
         allFiles = commandsFolder.getFiles("*.json");
@@ -278,14 +281,15 @@ function processCommands() {
     for (var i = 0; i < allFiles.length; i++) {
         var file = allFiles[i];
 
-        // Skip directories.
+        // Skip directories (getFiles can return Folder objects too).
         if (file instanceof Folder) {
             continue;
         }
 
         var fileName = file.name;
 
-        // Only process plain .json files.
+        // Only process plain .json files — skip .response, .processed, etc.
+        // A valid command file ends with exactly ".json" (no further extension).
         if (fileName.length < 5) {
             continue;
         }
@@ -294,18 +298,18 @@ function processCommands() {
             continue;
         }
 
-        // Dedup: skip if already dispatched this session.
+        // Dedup: skip if we already dispatched this file in the current session.
         if (processedCommands[fileName]) {
             continue;
         }
 
-        // Mark in dedup set immediately.
+        // Mark in dedup set immediately to prevent concurrent re-entry.
         processedCommands[fileName] = true;
 
         // -------------------------------------------------------------------
         // Read the command file.
         // -------------------------------------------------------------------
-        var commandId = fileName;
+        var commandId = fileName;   // fallback id if parse fails
         var commandData = null;
         var readError = null;
 
@@ -331,6 +335,7 @@ function processCommands() {
         }
 
         if (readError || !commandData || !commandData.script) {
+            // Write a parse-error response so the server doesn't time out.
             var parseErrMsg = readError
                 ? readError.toString()
                 : "Missing 'script' field in command file: " + fileName;
@@ -350,26 +355,34 @@ function processCommands() {
 
         // -------------------------------------------------------------------
         // Execute the script inside After Effects.
+        // Wrap in an undo group so the user can Ctrl+Z the whole operation.
         // -------------------------------------------------------------------
         var execSuccess = false;
         var execMessage = "";
 
         app.beginUndoGroup("AE MCP: " + commandId);
         try {
+            // eval() the script string in the current ExtendScript context.
+            // The script is expected to return a value (or an object).
             var rawResult = eval(commandData.script); // jshint ignore:line
 
+            // Normalise the result to { success: true, data: ... }.
             var formattedResult;
             if (rawResult !== null &&
                 rawResult !== undefined &&
                 typeof rawResult === "object" &&
                 rawResult.hasOwnProperty("success")) {
+                // Script returned a properly shaped result object.
                 formattedResult = rawResult;
             } else if (rawResult === undefined || rawResult === null) {
+                // Script returned nothing — treat as successful void operation.
                 formattedResult = { success: true, data: null };
             } else {
+                // Script returned a plain value; wrap it.
                 formattedResult = { success: true, data: rawResult };
             }
 
+            // Write response file.
             var responsePayload = JSON.stringify({
                 id: commandId,
                 result: formattedResult
@@ -383,7 +396,11 @@ function processCommands() {
             responseFile.write(responsePayload);
             responseFile.close();
 
+            // Small delay to ensure the OS flushes the write before the
+            // MCP server's polling loop reads the response file.
             $.sleep(100);
+
+            // Archive the command (rename to .processed).
             archiveCommand(file);
 
             execSuccess = true;
@@ -394,6 +411,7 @@ function processCommands() {
             result.processed += 1;
 
         } catch (execErr) {
+            // Execution error: write a structured error response, then archive.
             var errMsg = execErr.toString();
             var errLine = (typeof execErr.line !== "undefined") ? execErr.line : "unknown";
             var errDetail = errMsg + " (line " + errLine + ")";
@@ -422,6 +440,8 @@ function processCommands() {
 
 // ---------------------------------------------------------------------------
 // getStatus()
+// Returns a JSON string with current bridge status information.
+// Useful for health-checks from the panel UI.
 // ---------------------------------------------------------------------------
 function getStatus() {
     var folderExists = false;
@@ -433,6 +453,7 @@ function getStatus() {
             folderExists = true;
             folderPath = commandsFolder.fsName;
 
+            // Count unprocessed .json files.
             var files = commandsFolder.getFiles("*.json");
             if (files) {
                 for (var i = 0; i < files.length; i++) {
@@ -446,7 +467,7 @@ function getStatus() {
             }
         }
     } catch (statusErr) {
-        // Non-fatal.
+        // Non-fatal; return best-effort info.
     }
 
     return JSON.stringify({
@@ -461,21 +482,29 @@ function getStatus() {
 
 // ---------------------------------------------------------------------------
 // archiveCommand(file)
+// Renames the processed command file by appending ".processed".
+// This keeps a record without blocking future poll cycles.
+// Falls back to deletion if rename fails.
 // ---------------------------------------------------------------------------
 function archiveCommand(file) {
     try {
+        // file.rename() changes only the base name within the same folder.
+        // We append ".processed" to the current name.
         var newName = file.name + ".processed";
         var renamed = file.rename(newName);
         if (!renamed) {
+            // rename() returned false — try deletion as a fallback.
             file.remove();
         }
     } catch (archiveErr) {
+        // Last resort: try to delete so the file is not re-processed.
         try { file.remove(); } catch (delErr) { /* nothing more we can do */ }
     }
 }
 
 // ---------------------------------------------------------------------------
 // writeErrorResponse(commandFile, commandId, errorCode, errorMessage)
+// Writes a structured error response file alongside the command file.
 // ---------------------------------------------------------------------------
 function writeErrorResponse(commandFile, commandId, errorCode, errorMessage) {
     try {
@@ -497,6 +526,7 @@ function writeErrorResponse(commandFile, commandId, errorCode, errorMessage) {
             errResponseFile.close();
         }
     } catch (writeErr) {
+        // Writing the error response itself failed.
         // There is nothing further we can do without risking a crash.
     }
 }
