@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>AE MCP Bridge</title>
+  <style>
+    /* ------------------------------------------------------------------ */
+    /* Reset & base                                                         */
+    /* ------------------------------------------------------------------ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: "Adobe Clean", "Helvetica Neue", Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.4;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Layout                                                               */
+    /* ------------------------------------------------------------------ */
+    #panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 10px;
+      gap: 8px;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Status row                                                           */
+    /* ------------------------------------------------------------------ */
+    #status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      padding: 7px 10px;
+      border: 1px solid #333;
+    }
+
+    #status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background-color 0.3s;
+      /* default: yellow = waiting */
+      background: #e8c444;
+      box-shadow: 0 0 5px rgba(232, 196, 68, 0.6);
+    }
+
+    #status-dot.active {
+      background: #4caf50;
+      box-shadow: 0 0 5px rgba(76, 175, 80, 0.6);
+    }
+
+    #status-dot.error {
+      background: #e05252;
+      box-shadow: 0 0 5px rgba(224, 82, 82, 0.6);
+    }
+
+    #status-text {
+      flex: 1;
+      color: #aaa;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Controls row                                                         */
+    /* ------------------------------------------------------------------ */
+    #controls-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Toggle switch */
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #aaa;
+      font-size: 11px;
+      flex: 1;
+    }
+
+    .toggle-label input[type="checkbox"] {
+      /* Hidden — replaced by the custom track/knob */
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      position: relative;
+      width: 32px;
+      height: 16px;
+      background: #444;
+      border-radius: 8px;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-track::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      background: #888;
+      border-radius: 50%;
+      transition: left 0.2s, background 0.2s;
+    }
+
+    .toggle-label input:checked + .toggle-track {
+      background: #1f6feb;
+    }
+
+    .toggle-label input:checked + .toggle-track::after {
+      left: 18px;
+      background: #fff;
+    }
+
+    /* Buttons */
+    button {
+      background: #3a3a3a;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      border-radius: 3px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: #4a4a4a;
+      border-color: #777;
+    }
+
+    button:active {
+      background: #2a2a2a;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    button.primary {
+      background: #1f6feb;
+      border-color: #388bfd;
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: #2a7fff;
+    }
+
+    button.primary:active {
+      background: #1861d0;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Stats bar                                                            */
+    /* ------------------------------------------------------------------ */
+    #stats-bar {
+      display: flex;
+      gap: 12px;
+      background: #252525;
+      border-radius: 4px;
+      padding: 5px 10px;
+      border: 1px solid #333;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #999;
+      font-size: 10px;
+    }
+
+    .stat-label {
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-value {
+      color: #d4d4d4;
+      font-weight: 600;
+      min-width: 20px;
+    }
+
+    .stat-value.has-errors {
+      color: #e05252;
+    }
+
+    .stat-divider {
+      width: 1px;
+      background: #3a3a3a;
+      align-self: stretch;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Commands folder display                                              */
+    /* ------------------------------------------------------------------ */
+    #folder-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #666;
+      font-size: 10px;
+    }
+
+    #folder-label {
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    #folder-path {
+      flex: 1;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 10px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      direction: rtl;
+      text-align: left;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Activity log                                                         */
+    /* ------------------------------------------------------------------ */
+    #log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #log-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #666;
+    }
+
+    #log-clear-btn {
+      padding: 2px 7px;
+      font-size: 10px;
+    }
+
+    #log {
+      flex: 1;
+      overflow-y: auto;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      padding: 6px;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 10px;
+      line-height: 1.5;
+      min-height: 0; /* flex shrink */
+    }
+
+    /* Webkit scrollbar */
+    #log::-webkit-scrollbar { width: 6px; }
+    #log::-webkit-scrollbar-track { background: #1a1a1a; }
+    #log::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    #log::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    .log-entry {
+      display: flex;
+      gap: 6px;
+      padding: 1px 0;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .log-time {
+      color: #555;
+      flex-shrink: 0;
+    }
+
+    .log-msg {
+      color: #aaa;
+      word-break: break-all;
+    }
+
+    .log-entry.ok .log-msg   { color: #6dd16d; }
+    .log-entry.error .log-msg { color: #e05252; }
+    .log-entry.info .log-msg  { color: #5faaf4; }
+    .log-entry.warn .log-msg  { color: #e8c444; }
+
+    /* ------------------------------------------------------------------ */
+    /* Footer                                                               */
+    /* ------------------------------------------------------------------ */
+    #footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #444;
+      font-size: 10px;
+    }
+
+    #version-label {
+      color: #444;
+    }
+
+    #poll-status {
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+<div id="panel">
+
+  <!-- Status indicator -->
+  <div id="status-row">
+    <div id="status-dot"></div>
+    <span id="status-text">Initialising…</span>
+  </div>
+
+  <!-- Auto-process toggle + manual process button -->
+  <div id="controls-row">
+    <label class="toggle-label" title="Automatically process incoming commands">
+      <input type="checkbox" id="auto-toggle" checked>
+      <span class="toggle-track"></span>
+      Auto Process
+    </label>
+    <button id="process-btn" class="primary" title="Process pending commands now">Process Now</button>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">Processed</span>
+      <span class="stat-value" id="stat-processed">0</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Errors</span>
+      <span class="stat-value" id="stat-errors">0</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Uptime</span>
+      <span class="stat-value" id="stat-uptime">0s</span>
+    </div>
+  </div>
+
+  <!-- Commands folder path -->
+  <div id="folder-row">
+    <span id="folder-label">Watch&nbsp;folder:</span>
+    <span id="folder-path" title="">—</span>
+  </div>
+
+  <!-- Activity log header -->
+  <div id="log-header">
+    <span id="log-title">Activity Log</span>
+    <button id="log-clear-btn">Clear</button>
+  </div>
+
+  <!-- Scrollable log -->
+  <div id="log"></div>
+
+  <!-- Footer -->
+  <div id="footer">
+    <span id="version-label">AE MCP Bridge v1.0.0</span>
+    <span id="poll-status">—</span>
+  </div>
+
+</div>
+
+<script src="js/CSInterface.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // -------------------------------------------------------------------------
+  // Constants
+  // -------------------------------------------------------------------------
+  var POLL_INTERVAL_MS = 300;   // how often to call processCommands()
+  var MAX_LOG_ENTRIES  = 100;   // rolling window for the activity log
+  var UPTIME_INTERVAL  = 1000;  // update uptime counter every second
+
+  // -------------------------------------------------------------------------
+  // State
+  // -------------------------------------------------------------------------
+  var csInterface    = new CSInterface();
+  var pollTimer      = null;
+  var uptimeTimer    = null;
+  var autoProcess    = true;
+  var isProcessing   = false;   // guard: don't overlap evalScript calls
+  var stats = {
+    processed: 0,
+    errors:    0,
+    startTime: Date.now()
+  };
+  var logEntries     = [];      // array of { time, type, msg }
+  var bridgeReady    = false;
+  var commandsPath   = "";
+
+  // -------------------------------------------------------------------------
+  // DOM refs
+  // -------------------------------------------------------------------------
+  var statusDot     = document.getElementById("status-dot");
+  var statusText    = document.getElementById("status-text");
+  var autoToggle    = document.getElementById("auto-toggle");
+  var processBtn    = document.getElementById("process-btn");
+  var statProcessed = document.getElementById("stat-processed");
+  var statErrors    = document.getElementById("stat-errors");
+  var statUptime    = document.getElementById("stat-uptime");
+  var folderPath    = document.getElementById("folder-path");
+  var logEl         = document.getElementById("log");
+  var logClearBtn   = document.getElementById("log-clear-btn");
+  var pollStatus    = document.getElementById("poll-status");
+
+  // -------------------------------------------------------------------------
+  // Utility: timestamp for log entries
+  // -------------------------------------------------------------------------
+  function timestamp() {
+    var now = new Date();
+    var hh  = ("0" + now.getHours()).slice(-2);
+    var mm  = ("0" + now.getMinutes()).slice(-2);
+    var ss  = ("0" + now.getSeconds()).slice(-2);
+    return hh + ":" + mm + ":" + ss;
+  }
+
+  // -------------------------------------------------------------------------
+  // appendLog(type, msg)
+  // type: "info" | "ok" | "error" | "warn"
+  // -------------------------------------------------------------------------
+  function appendLog(type, msg) {
+    var entry = { time: timestamp(), type: type, msg: msg };
+    logEntries.push(entry);
+
+    // Trim to rolling window.
+    if (logEntries.length > MAX_LOG_ENTRIES) {
+      logEntries.shift();
+      // Remove the oldest DOM node.
+      if (logEl.firstChild) {
+        logEl.removeChild(logEl.firstChild);
+      }
+    }
+
+    // Create DOM node.
+    var row  = document.createElement("div");
+    row.className = "log-entry " + type;
+
+    var timeSpan = document.createElement("span");
+    timeSpan.className = "log-time";
+    timeSpan.textContent = entry.time;
+
+    var msgSpan = document.createElement("span");
+    msgSpan.className = "log-msg";
+    msgSpan.textContent = entry.msg;
+
+    row.appendChild(timeSpan);
+    row.appendChild(msgSpan);
+    logEl.appendChild(row);
+
+    // Auto-scroll to bottom.
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // -------------------------------------------------------------------------
+  // setStatus(state, text)
+  // state: "waiting" | "active" | "error"
+  // -------------------------------------------------------------------------
+  function setStatus(state, text) {
+    statusDot.className = "";
+    if (state === "active") {
+      statusDot.classList.add("active");
+    } else if (state === "error") {
+      statusDot.classList.add("error");
+    }
+    // "waiting" = no extra class (yellow by CSS default)
+    statusText.textContent = text || "";
+  }
+
+  // -------------------------------------------------------------------------
+  // updateStats()
+  // -------------------------------------------------------------------------
+  function updateStats() {
+    statProcessed.textContent = stats.processed;
+    statErrors.textContent    = stats.errors;
+    if (stats.errors > 0) {
+      statErrors.classList.add("has-errors");
+    } else {
+      statErrors.classList.remove("has-errors");
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Uptime counter
+  // -------------------------------------------------------------------------
+  function startUptimeCounter() {
+    uptimeTimer = setInterval(function () {
+      var elapsed = Math.floor((Date.now() - stats.startTime) / 1000);
+      var h = Math.floor(elapsed / 3600);
+      var m = Math.floor((elapsed % 3600) / 60);
+      var s = elapsed % 60;
+      if (h > 0) {
+        statUptime.textContent = h + "h " + m + "m";
+      } else if (m > 0) {
+        statUptime.textContent = m + "m " + s + "s";
+      } else {
+        statUptime.textContent = s + "s";
+      }
+    }, UPTIME_INTERVAL);
+  }
+
+  // -------------------------------------------------------------------------
+  // handlePollResult(resultStr)
+  // Parse the JSON string returned by processCommands() in host.jsx and
+  // update the UI accordingly.
+  // -------------------------------------------------------------------------
+  function handlePollResult(resultStr) {
+    isProcessing = false;
+
+    if (!resultStr || resultStr === "EvalScript error.") {
+      setStatus("error", "ExtendScript error — bridge may not be loaded");
+      appendLog("error", "evalScript returned an error. Ensure AE MCP Bridge is visible.");
+      stats.errors += 1;
+      updateStats();
+      pollStatus.textContent = "last: error";
+      return;
+    }
+
+    var data;
+    try {
+      data = JSON.parse(resultStr);
+    } catch (parseErr) {
+      setStatus("error", "Response parse error");
+      appendLog("error", "Could not parse response: " + resultStr.substring(0, 80));
+      stats.errors += 1;
+      updateStats();
+      return;
+    }
+
+    pollStatus.textContent = "last: " + timestamp();
+
+    // Update aggregate stats.
+    if (data.processed > 0) {
+      stats.processed += data.processed;
+    }
+    if (data.errors > 0) {
+      stats.errors += data.errors;
+    }
+    updateStats();
+
+    // Log individual command results.
+    if (data.commands && data.commands.length > 0) {
+      for (var i = 0; i < data.commands.length; i++) {
+        var cmd = data.commands[i];
+        var shortId = cmd.id ? cmd.id.substring(0, 40) : "?";
+        if (cmd.status === "ok") {
+          appendLog("ok", shortId + " — " + (cmd.message || "OK"));
+          setStatus("active", "Processed: " + shortId);
+        } else {
+          appendLog("error", shortId + " — " + (cmd.message || "error"));
+          setStatus("error", "Error in: " + shortId);
+        }
+      }
+    } else {
+      // Quiet tick — no commands.  Keep status green if bridge was active.
+      if (bridgeReady && data.errors === 0) {
+        setStatus("active", "Watching for commands…");
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // runProcessCycle()
+  // Fires one evalScript call to processCommands() in the host JSX.
+  // -------------------------------------------------------------------------
+  function runProcessCycle() {
+    if (isProcessing) { return; }  // skip if previous call still pending
+    isProcessing = true;
+    csInterface.evalScript("processCommands()", handlePollResult);
+  }
+
+  // -------------------------------------------------------------------------
+  // startPolling() / stopPolling()
+  // -------------------------------------------------------------------------
+  function startPolling() {
+    if (pollTimer !== null) { return; }
+    pollTimer = setInterval(runProcessCycle, POLL_INTERVAL_MS);
+    appendLog("info", "Auto-processing started (every " + POLL_INTERVAL_MS + " ms)");
+    setStatus("active", "Watching for commands…");
+  }
+
+  function stopPolling() {
+    if (pollTimer !== null) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    appendLog("warn", "Auto-processing paused");
+    setStatus("waiting", "Paused — Auto Process is off");
+  }
+
+  // -------------------------------------------------------------------------
+  // initPanel()
+  // Called once the DOM is ready. Sets up the bridge and starts polling.
+  // -------------------------------------------------------------------------
+  function initPanel() {
+    appendLog("info", "Panel loading…");
+    setStatus("waiting", "Initialising bridge…");
+
+    // Call initBridge() in host.jsx to create the commands folder and get
+    // the path for display.
+    csInterface.evalScript("initBridge()", function (resultStr) {
+      if (!resultStr || resultStr === "EvalScript error.") {
+        setStatus("error", "Bridge init failed — is the script loaded?");
+        appendLog("error", "initBridge() evalScript error. Retrying in 2s…");
+        // Retry once after a short delay (AE may still be loading the JSX).
+        setTimeout(function () {
+          csInterface.evalScript("initBridge()", function (retryResult) {
+            handleInitResult(retryResult);
+          });
+        }, 2000);
+        return;
+      }
+      handleInitResult(resultStr);
+    });
+  }
+
+  function handleInitResult(resultStr) {
+    var data;
+    try {
+      data = JSON.parse(resultStr);
+    } catch (e) {
+      setStatus("error", "Bridge init parse error");
+      appendLog("error", "Could not parse initBridge result: " + (resultStr || "null"));
+      return;
+    }
+
+    if (data && data.success) {
+      bridgeReady    = true;
+      commandsPath   = data.commandsPath || "";
+      folderPath.textContent = commandsPath || "—";
+      folderPath.title       = commandsPath || "";
+
+      setStatus("active", "Bridge ready");
+      appendLog("info", "Bridge v" + (data.version || "?") + " ready");
+      appendLog("info", "Watch folder: " + commandsPath);
+
+      // Start auto-polling if toggle is on.
+      if (autoProcess) {
+        startPolling();
+      }
+    } else {
+      setStatus("error", "Bridge init failed");
+      appendLog("error", "initBridge error: " + (data ? data.message : "unknown"));
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Event listeners
+  // -------------------------------------------------------------------------
+
+  // Auto-process toggle
+  autoToggle.addEventListener("change", function () {
+    autoProcess = autoToggle.checked;
+    if (autoProcess) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+  });
+
+  // Manual "Process Now" button
+  processBtn.addEventListener("click", function () {
+    if (!bridgeReady) {
+      appendLog("warn", "Bridge not ready — please wait");
+      return;
+    }
+    appendLog("info", "Manual process triggered");
+    runProcessCycle();
+  });
+
+  // Clear log button
+  logClearBtn.addEventListener("click", function () {
+    logEntries = [];
+    logEl.innerHTML = "";
+  });
+
+  // -------------------------------------------------------------------------
+  // CEP lifecycle events
+  // -------------------------------------------------------------------------
+  csInterface.addEventListener("com.adobe.csxs.events.ExtensionUnloaded", function () {
+    stopPolling();
+    if (uptimeTimer) { clearInterval(uptimeTimer); }
+  });
+
+  // -------------------------------------------------------------------------
+  // Kick off
+  // -------------------------------------------------------------------------
+  startUptimeCounter();
+  // Small delay to let AE finish loading the JSX file declared in ScriptPath.
+  setTimeout(initPanel, 500);
+
+}());
+</script>
+</body>
+</html>
