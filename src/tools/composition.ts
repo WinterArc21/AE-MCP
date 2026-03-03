@@ -66,7 +66,7 @@ function compData(v: string): string {
 
 export function registerCompositionTools(server: McpServer): void {
 
-  // ── create_composition ────────────────────────────────────────────────────
+  // ── create_composition ────────────────────────────────────────────────
 
   server.tool(
     "create_composition",
@@ -131,7 +131,7 @@ export function registerCompositionTools(server: McpServer): void {
     }
   );
 
-  // ── get_composition ───────────────────────────────────────────────────────
+  // ── get_composition ─────────────────────────────────────────────────
 
   server.tool(
     "get_composition",
@@ -158,7 +158,7 @@ export function registerCompositionTools(server: McpServer): void {
     }
   );
 
-  // ── list_compositions ─────────────────────────────────────────────────────
+  // ── list_compositions ─────────────────────────────────────────────────
 
   server.tool(
     "list_compositions",
@@ -193,7 +193,7 @@ export function registerCompositionTools(server: McpServer): void {
     }
   );
 
-  // ── duplicate_composition ─────────────────────────────────────────────────
+  // ── duplicate_composition ───────────────────────────────────────────────
 
   server.tool(
     "duplicate_composition",
@@ -237,7 +237,7 @@ export function registerCompositionTools(server: McpServer): void {
     }
   );
 
-  // ── set_composition_settings ──────────────────────────────────────────────
+  // ── set_composition_settings ─────────────────────────────────────────────
 
   server.tool(
     "set_composition_settings",
