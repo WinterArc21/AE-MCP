@@ -1,0 +1,28 @@
+{
+  "name": "ae-mcp",
+  "version": "1.0.0",
+  "description": "After Effects MCP Server - AI-powered motion design automation",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ae-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts src/bridge.ts src/script-builder.ts src/tools/project.ts src/tools/composition.ts src/tools/layer.ts src/tools/animation.ts src/tools/expression.ts src/tools/motion-design.ts src/tools/render.ts src/tools/script.ts --outdir=dist --outbase=src --platform=node --format=esm --target=node18",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "install-extension": "node scripts/install-extension.js",
+    "typecheck": "tsc --noEmit",
+    "build:tsc": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "esbuild": "^0.27.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.0.0"
+  }
+}
