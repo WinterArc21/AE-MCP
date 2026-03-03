@@ -28,7 +28,7 @@ const __dirname = path.dirname(__filename);
 
 const EXTENSION_ID = "com.motiona.ae-mcp";
 
-// ─── Determine install paths ────────────────────────────────────────────────
+// ─── Determine install paths ────────────────────────────────────────────────────────────────
 
 function getExtensionsDir() {
   const platform = os.platform();
@@ -51,7 +51,7 @@ function getExtensionsDir() {
   }
 }
 
-// ─── Copy directory recursively ─────────────────────────────────────────────
+// ─── Copy directory recursively ───────────────────────────────────────────────────────────────
 
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) {
@@ -69,7 +69,7 @@ function copyDirSync(src, dest) {
   }
 }
 
-// ─── Enable PlayerDebugMode (required for unsigned extensions) ──────────────
+// ─── Enable PlayerDebugMode (required for unsigned extensions) ────────────────────────────
 
 function enableDebugMode() {
   const platform = os.platform();
@@ -105,12 +105,12 @@ function enableDebugMode() {
   }
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
+// ─── Main ──────────────────────────────────────────────────────────────────────────────────
 
 function main() {
-  console.log("╔══════════════════════════════════════════════╗");
+  console.log("╔══════════════════════════════════════════╗");
   console.log("║    AE MCP Bridge — Extension Installer   ║");
-  console.log("╚══════════════════════════════════════════════╝");
+  console.log("╚══════════════════════════════════════════╝");
   console.log();
 
   const sourceDir = path.resolve(__dirname, "..", "cep-extension");
