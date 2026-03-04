@@ -1153,4 +1153,87 @@ export function registerLayerTools(server: McpServer): void {
       return run(script, "reorder_layer");
     }
   );
+
+  // ── add_comp_layer ──────────────────────────────────────────────────────
+
+  server.tool(
+    "add_comp_layer",
+    "Adds an existing composition as a layer inside another composition (comp nesting). " +
+      "This is essential for modular scene building — create sub-scenes as separate comps, " +
+      "then assemble them into a master comp. " +
+      "The nested comp behaves like a footage layer: it has its own timeline, and changes to the " +
+      "source comp are reflected everywhere it is used. " +
+      "sourceCompId is the composition to nest (the one that will appear as a layer). " +
+      "compId is the target composition (the one that receives the new layer). " +
+      "The two must be different compositions — self-nesting is not allowed. " +
+      "Returns the new layer's index, name, and basic properties.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the target composition (where the layer will be added)"),
+      sourceCompId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition to nest as a layer"),
+      name: z
+        .string()
+        .optional()
+        .describe("Override layer name. If omitted, uses the source comp's name"),
+      position: z
+        .array(z.number())
+        .length(2)
+        .optional()
+        .describe("Position [x, y] in pixels from the comp top-left. Omit for comp center"),
+      startTime: z
+        .number()
+        .optional()
+        .describe("Layer start time in seconds. Default is 0"),
+    },
+    async ({ compId, sourceCompId, name, position, startTime }) => {
+      if (compId === sourceCompId) {
+        return {
+          content: [{ type: "text" as const, text: "Error: compId and sourceCompId must be different — a composition cannot be nested inside itself." }],
+          isError: true,
+        };
+      }
+
+      let extras = "";
+      if (name !== undefined) {
+        extras += '  newLayer.name = "' + escapeString(name) + '";\n';
+      }
+      if (position !== undefined) {
+        extras +=
+          '  newLayer.property("Transform").property("Position").setValue([' +
+          position[0] + ", " + position[1] + "]);\n";
+      }
+      if (startTime !== undefined) {
+        extras += "  newLayer.startTime = " + startTime + ";\n";
+      }
+
+      const script = wrapWithReturn(
+        'app.beginUndoGroup("add_comp_layer");\n' +
+          "var __r;\n" +
+          "try {\n" +
+          "  " +
+          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          "  var srcItem = app.project.itemByID(" + sourceCompId + ");\n" +
+          "  if (!srcItem || !(srcItem instanceof CompItem)) {\n" +
+          '    throw new Error("Source composition not found with id: ' + sourceCompId + '");\n' +
+          "  }\n" +
+          "  var newLayer = comp.layers.add(srcItem);\n" +
+          extras +
+          "  __r = { success: true, data: " +
+          layerBase("newLayer") +
+          " };\n" +
+          "} finally {\n" +
+          "  app.endUndoGroup();\n" +
+          "}\n" +
+          "return __r;\n"
+      );
+      return run(script, "add_comp_layer");
+    }
+  );
 }

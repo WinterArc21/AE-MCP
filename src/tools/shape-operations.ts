@@ -47,17 +47,17 @@ export function registerShapeOperationTools(server: McpServer): void {
   server.tool(
     "add_trim_paths",
     "Add a Trim Paths modifier to a shape layer. " +
-      "Trim Paths progressively reveals or hides the stroke path of shape contents, " +
-      "enabling classic 'draw-on' and 'draw-off' line animation effects. " +
-      "start (0-100): where the trim begins along the path (0% = path start). " +
-      "end (0-100): where the trim ends along the path (100% = path end). " +
-      "To animate a line drawing on: keyframe End from 0% to 100%. " +
-      "To animate a line drawing off: keyframe Start from 0% to 100%. " +
-      "offset shifts the entire trim region along the path in degrees, " +
-      "useful for animating dashes around a loop. " +
-      "The layer must be a shape layer (created with add_shape_layer). " +
-      "Trim Paths applies to ALL paths in the layer's Contents group by default. " +
-      "Returns the index of the added Trim Paths property for use with add_keyframe.",
+    "Trim Paths progressively reveals or hides the stroke path of shape contents, " +
+    "enabling classic 'draw-on' and 'draw-off' line animation effects. " +
+    "start (0-100): where the trim begins along the path (0% = path start). " +
+    "end (0-100): where the trim ends along the path (100% = path end). " +
+    "To animate a line drawing on: keyframe End from 0% to 100%. " +
+    "To animate a line drawing off: keyframe Start from 0% to 100%. " +
+    "offset shifts the entire trim region along the path in degrees, " +
+    "useful for animating dashes around a loop. " +
+    "The layer must be a shape layer (created with add_shape_layer). " +
+    "Trim Paths applies to ALL paths in the layer's Contents group by default. " +
+    "Returns the index of the added Trim Paths property for use with add_keyframe.",
     {
       compId: z
         .number()
@@ -114,15 +114,15 @@ export function registerShapeOperationTools(server: McpServer): void {
   server.tool(
     "add_repeater",
     "Add a Repeater modifier to a shape layer. " +
-      "The Repeater clones all shape contents (paths, fills, strokes) a specified number of times, " +
-      "applying a cumulative transform offset between each copy. " +
-      "copies: how many total instances to show (including the original). " +
-      "offset: shifts which copy is treated as the 'first' (useful for animating the pattern). " +
-      "position [x, y]: each copy is offset by this many pixels from the previous. " +
-      "scale [x, y]: each copy is scaled by this percent relative to the previous (100 = no scale change, 90 = each copy is 90% of previous). " +
-      "rotation: each copy is rotated by this many additional degrees. " +
-      "Example: copies=5, position=[60, 0] creates a row of 5 identical shapes spaced 60px apart. " +
-      "Animate offset from 0 to -copies to smoothly cycle copies into/out of view (seamless loop).",
+    "The Repeater clones all shape contents (paths, fills, strokes) a specified number of times, " +
+    "applying a cumulative transform offset between each copy. " +
+    "copies: how many total instances to show (including the original). " +
+    "offset: shifts which copy is treated as the 'first' (useful for animating the pattern). " +
+    "position [x, y]: each copy is offset by this many pixels from the previous. " +
+    "scale [x, y]: each copy is scaled by this percent relative to the previous (100 = no scale change, 90 = each copy is 90% of previous). " +
+    "rotation: each copy is rotated by this many additional degrees. " +
+    "Example: copies=5, position=[60, 0] creates a row of 5 identical shapes spaced 60px apart. " +
+    "Animate offset from 0 to -copies to smoothly cycle copies into/out of view (seamless loop).",
     {
       compId: z
         .number()
@@ -159,9 +159,9 @@ export function registerShapeOperationTools(server: McpServer): void {
         .describe("Rotation added per copy in degrees (default 0)"),
     },
     async ({ compId, layerIndex, copies, offset, position, scale, rotation }) => {
-      const offsetVal   = offset   !== undefined ? offset   : 0;
-      const posVal      = position !== undefined ? "[" + position.join(",") + "]" : "[0,0]";
-      const scaleVal    = scale    !== undefined ? "[" + scale.join(",") + "]"    : "[100,100]";
+      const offsetVal = offset !== undefined ? offset : 0;
+      const posVal = position !== undefined ? "[" + position.join(",") + "]" : "[0,0]";
+      const scaleVal = scale !== undefined ? "[" + scale.join(",") + "]" : "[100,100]";
       const rotationVal = rotation !== undefined ? rotation : 0;
 
       const body =
@@ -194,13 +194,13 @@ export function registerShapeOperationTools(server: McpServer): void {
   server.tool(
     "add_wiggle_paths",
     "Add Wiggle Paths (also called Roughen Edges for paths) to a shape layer. " +
-      "Wiggle Paths displaces the vertices of shape paths randomly to create organic, hand-drawn, " +
-      "or rough edges. Great for nature-themed graphics, sketchy styles, or wobbly text outlines. " +
-      "size controls the amplitude of the displacement in pixels (larger = rougher edges). " +
-      "detail controls how many wiggles per unit of path length (higher = more jagged). " +
-      "points: 'Smooth' creates flowing curves; 'Corner' creates sharp angular bumps. " +
-      "The wiggle animates over time automatically — to freeze it, set the Wiggles/Second to 0 " +
-      "using set_text_animator_values on the resulting property.",
+    "Wiggle Paths displaces the vertices of shape paths randomly to create organic, hand-drawn, " +
+    "or rough edges. Great for nature-themed graphics, sketchy styles, or wobbly text outlines. " +
+    "size controls the amplitude of the displacement in pixels (larger = rougher edges). " +
+    "detail controls how many wiggles per unit of path length (higher = more jagged). " +
+    "points: 'Smooth' creates flowing curves; 'Corner' creates sharp angular bumps. " +
+    "The wiggle animates over time automatically — to freeze it, set the Wiggles/Second to 0 " +
+    "using set_text_animator_values on the resulting property.",
     {
       compId: z
         .number()
@@ -256,14 +256,14 @@ export function registerShapeOperationTools(server: McpServer): void {
   server.tool(
     "add_merge_paths",
     "Add a Merge Paths modifier to a shape layer to combine multiple sub-paths. " +
-      "Merge Paths performs boolean operations on the paths within the Contents group: " +
-      "'Add' = union of all paths (fills all areas, combines into one shape); " +
-      "'Subtract' = second path cuts a hole in the first path; " +
-      "'Intersect' = shows only the overlapping area of all paths; " +
-      "'ExcludeIntersections' = XOR — shows non-overlapping areas only. " +
-      "The shape layer must have at least two path shapes in its Contents for Merge Paths to have effect. " +
-      "Example: create a circle and a star in the same Contents group, then add Merge Paths with " +
-      "'Subtract' to punch the star out of the circle.",
+    "Merge Paths performs boolean operations on the paths within the Contents group: " +
+    "'Add' = union of all paths (fills all areas, combines into one shape); " +
+    "'Subtract' = second path cuts a hole in the first path; " +
+    "'Intersect' = shows only the overlapping area of all paths; " +
+    "'ExcludeIntersections' = XOR — shows non-overlapping areas only. " +
+    "The shape layer must have at least two path shapes in its Contents for Merge Paths to have effect. " +
+    "Example: create a circle and a star in the same Contents group, then add Merge Paths with " +
+    "'Subtract' to punch the star out of the circle.",
     {
       compId: z
         .number()
@@ -288,10 +288,10 @@ export function registerShapeOperationTools(server: McpServer): void {
     async ({ compId, layerIndex, mode }) => {
       // AE Merge Paths mode values: 1=Add, 2=Subtract, 3=Intersect, 4=ExcludeIntersections
       const modeMap: Record<string, number> = {
-        Add:                 1,
-        Subtract:            2,
-        Intersect:           3,
-        ExcludeIntersections:4,
+        Add: 1,
+        Subtract: 2,
+        Intersect: 3,
+        ExcludeIntersections: 4,
       };
       const modeVal = modeMap[mode] ?? 1;
 
@@ -310,6 +310,230 @@ export function registerShapeOperationTools(server: McpServer): void {
 
       try {
         return runScript(script, "add_merge_paths");
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+      }
+    }
+  );
+
+  // ─── add_offset_paths ────────────────────────────────────────────────────────
+  server.tool(
+    "add_offset_paths",
+    "Add an Offset Paths modifier to a shape layer. " +
+    "Offset Paths expands or contracts shape outlines by a specified pixel amount. " +
+    "Positive amount = outward expansion (makes shapes larger). " +
+    "Negative amount = inward contraction (makes shapes smaller). " +
+    "Useful for creating outlines, borders, or growing/shrinking shapes for animation. " +
+    "Animate the amount from 0 to a large value for a 'growing outline' effect. " +
+    "lineJoin controls how corners are handled: " +
+    "'Miter' = sharp corners (default); 'Round' = rounded corners; 'Bevel' = flat cut corners. " +
+    "miterLimit (only applies to Miter joins) controls how far sharp corners extend before being beveled.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition"),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the shape layer"),
+      amount: z
+        .number()
+        .describe("Offset amount in pixels. Positive = expand outward, negative = contract inward"),
+      lineJoin: z
+        .enum(["Miter", "Round", "Bevel"])
+        .optional()
+        .describe("Corner style: 'Miter' = sharp (default), 'Round' = rounded, 'Bevel' = flat cut"),
+      miterLimit: z
+        .number()
+        .min(0)
+        .optional()
+        .describe("Miter limit — how far sharp corners extend before auto-beveling (default 4, only applies to Miter joins)"),
+    },
+    async ({ compId, layerIndex, amount, lineJoin, miterLimit }) => {
+      // AE Line Join values: 1=Miter, 2=Round, 3=Bevel
+      const joinMap: Record<string, number> = { Miter: 1, Round: 2, Bevel: 3 };
+      const joinVal = lineJoin ? joinMap[lineJoin] : 1;
+      const miterVal = miterLimit !== undefined ? miterLimit : 4;
+
+      const body =
+        findCompById("comp", compId) +
+        findLayerByIndex("layer", "comp", layerIndex) +
+        "if (!(layer instanceof ShapeLayer)) {\n" +
+        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a shape layer.\", code: \"INVALID_PARAMS\" } };\n" +
+        "}\n" +
+        "var _contents = layer.property(\"Contents\");\n" +
+        "var _off = _contents.addProperty(\"ADBE Vector Filter - Offset\");\n" +
+        "_off.property(\"ADBE Vector Offset Amount\").setValue(" + amount + ");\n" +
+        "_off.property(\"ADBE Vector Offset Line Join\").setValue(" + joinVal + ");\n" +
+        "_off.property(\"ADBE Vector Offset Miter Limit\").setValue(" + miterVal + ");\n" +
+        "return { success: true, data: { propertyIndex: _contents.numProperties, propertyName: _off.name, amount: " + amount + " } };\n";
+
+      const script = wrapWithReturn(wrapInUndoGroup(body, "add_offset_paths"));
+
+      try {
+        return runScript(script, "add_offset_paths");
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+      }
+    }
+  );
+
+  // ─── add_pucker_bloat ────────────────────────────────────────────────────────
+  server.tool(
+    "add_pucker_bloat",
+    "Add a Pucker & Bloat modifier to a shape layer. " +
+    "Pucker & Bloat distorts shape vertices by pulling them toward (pucker) or away from (bloat) the center. " +
+    "amount range: -100 to 100. " +
+    "Negative values = pucker (vertices pull inward, creating star-like pointed shapes). " +
+    "Positive values = bloat (vertices push outward, creating rounded organic shapes). " +
+    "0 = no effect. " +
+    "Great for creating organic shapes: bloat a polygon to make soft rounded shapes, " +
+    "or pucker a circle to create star bursts and spiky effects.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition"),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the shape layer"),
+      amount: z
+        .number()
+        .min(-100)
+        .max(100)
+        .describe("Pucker/Bloat amount: -100 (full pucker) to 100 (full bloat), 0 = no effect"),
+    },
+    async ({ compId, layerIndex, amount }) => {
+      const body =
+        findCompById("comp", compId) +
+        findLayerByIndex("layer", "comp", layerIndex) +
+        "if (!(layer instanceof ShapeLayer)) {\n" +
+        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a shape layer.\", code: \"INVALID_PARAMS\" } };\n" +
+        "}\n" +
+        "var _contents = layer.property(\"Contents\");\n" +
+        "var _pb = _contents.addProperty(\"ADBE Vector Filter - PB\");\n" +
+        "_pb.property(\"ADBE Vector PuckerBloat Amount\").setValue(" + amount + ");\n" +
+        "return { success: true, data: { propertyIndex: _contents.numProperties, propertyName: _pb.name, amount: " + amount + " } };\n";
+
+      const script = wrapWithReturn(wrapInUndoGroup(body, "add_pucker_bloat"));
+
+      try {
+        return runScript(script, "add_pucker_bloat");
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+      }
+    }
+  );
+
+  // ─── add_zig_zag ─────────────────────────────────────────────────────────────
+  server.tool(
+    "add_zig_zag",
+    "Add a Zig Zag modifier to a shape layer. " +
+    "Zig Zag adds wave-like or angular distortion to shape edges by displacing path vertices " +
+    "perpendicular to the path direction. " +
+    "size: amplitude of the distortion in pixels (how far vertices are displaced). " +
+    "ridgesPerSegment: how many wave cycles per path segment (higher = more frequent zig-zags). " +
+    "points: 'Smooth' creates smooth wave patterns (sine-wave-like); 'Corner' creates sharp angular zig-zags. " +
+    "Combine with Trim Paths animation for dynamic wavy line reveals. " +
+    "Animate size from 0 for an 'edges come alive' transition.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition"),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the shape layer"),
+      size: z
+        .number()
+        .min(0)
+        .describe("Wave amplitude in pixels — how far vertices are displaced (e.g. 5 = subtle, 30 = dramatic)"),
+      ridgesPerSegment: z
+        .number()
+        .min(0)
+        .describe("Number of zig-zag waves per path segment (e.g. 3 = moderate, 10 = very wavy)"),
+      points: z
+        .enum(["Smooth", "Corner"])
+        .optional()
+        .describe("'Smooth' = flowing sine waves (default); 'Corner' = sharp angular zig-zags"),
+    },
+    async ({ compId, layerIndex, size, ridgesPerSegment, points }) => {
+      // AE Zig Zag "Points" property: 1 = Corner, 2 = Smooth
+      const pointsVal = (points === "Corner") ? 1 : 2;
+
+      const body =
+        findCompById("comp", compId) +
+        findLayerByIndex("layer", "comp", layerIndex) +
+        "if (!(layer instanceof ShapeLayer)) {\n" +
+        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a shape layer.\", code: \"INVALID_PARAMS\" } };\n" +
+        "}\n" +
+        "var _contents = layer.property(\"Contents\");\n" +
+        "var _zz = _contents.addProperty(\"ADBE Vector Filter - Zigzag\");\n" +
+        "_zz.property(\"ADBE Vector Zigzag Size\").setValue(" + size + ");\n" +
+        "_zz.property(\"ADBE Vector Zigzag Detail\").setValue(" + ridgesPerSegment + ");\n" +
+        "_zz.property(\"ADBE Vector Zigzag Points\").setValue(" + pointsVal + ");\n" +
+        "return { success: true, data: { propertyIndex: _contents.numProperties, propertyName: _zz.name, size: " + size + ", ridgesPerSegment: " + ridgesPerSegment + " } };\n";
+
+      const script = wrapWithReturn(wrapInUndoGroup(body, "add_zig_zag"));
+
+      try {
+        return runScript(script, "add_zig_zag");
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+      }
+    }
+  );
+
+  // ─── add_twist ───────────────────────────────────────────────────────────────
+  server.tool(
+    "add_twist",
+    "Add a Twist modifier to a shape layer. " +
+    "Twist rotates shape contents around the layer's center point, with the rotation amount " +
+    "increasing with distance from the center. " +
+    "angle: degrees of twist. Positive = clockwise, negative = counter-clockwise. " +
+    "Small values (10-30°) create subtle warping. " +
+    "Large values (180°+) create dramatic spiral distortions. " +
+    "Animate the angle from 0 for a 'twist-in' reveal effect.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition"),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the shape layer"),
+      angle: z
+        .number()
+        .describe("Twist angle in degrees. Positive = clockwise, negative = counter-clockwise"),
+    },
+    async ({ compId, layerIndex, angle }) => {
+      const body =
+        findCompById("comp", compId) +
+        findLayerByIndex("layer", "comp", layerIndex) +
+        "if (!(layer instanceof ShapeLayer)) {\n" +
+        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a shape layer.\", code: \"INVALID_PARAMS\" } };\n" +
+        "}\n" +
+        "var _contents = layer.property(\"Contents\");\n" +
+        "var _tw = _contents.addProperty(\"ADBE Vector Filter - Twist\");\n" +
+        "_tw.property(\"ADBE Vector Twist Angle\").setValue(" + angle + ");\n" +
+        "return { success: true, data: { propertyIndex: _contents.numProperties, propertyName: _tw.name, angle: " + angle + " } };\n";
+
+      const script = wrapWithReturn(wrapInUndoGroup(body, "add_twist"));
+
+      try {
+        return runScript(script, "add_twist");
       } catch (err) {
         return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
       }

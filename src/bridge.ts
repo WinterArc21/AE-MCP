@@ -37,7 +37,7 @@ export class AEBridge {
   private _isShuttingDown = false;
 
   constructor() {
-    this._commandsDir = path.join(os.homedir(), "Documents", COMMANDS_DIR_NAME);
+    this._commandsDir = path.join(os.homedir(), "OneDrive", "Documents", COMMANDS_DIR_NAME);
     this._clientPrefix = `aemcp_${process.pid}_${Date.now().toString(36)}`;
     this.ensureCommandsDir();
     this.cleanStaleFiles();

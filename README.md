@@ -80,7 +80,7 @@ Cursor users also benefit from the included `.cursorrules` file, which gives the
 
 Replace `/path/to/ae-mcp` with the actual path to this directory.
 
-## Available Tools (75+ total)
+## Available Tools (82+ total)
 
 ### Project Management (5 tools)
 | Tool | Description |
@@ -100,7 +100,7 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `duplicate_composition` | Duplicate a composition |
 | `set_comp_settings` | Update comp settings (resolution, fps, duration, bg) |
 
-### Layer Management (12 tools)
+### Layer Management (13 tools)
 | Tool | Description |
 |------|-------------|
 | `add_solid_layer` | Add a solid-color layer |
@@ -108,6 +108,7 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `add_shape_layer` | Add a shape layer (rectangle, ellipse, polygon, star) |
 | `add_null_layer` | Add a null object (for parenting/expressions) |
 | `add_adjustment_layer` | Add an adjustment layer |
+| `add_comp_layer` | Add an existing composition as a layer (comp nesting) |
 | `list_layers` | List all layers in a composition |
 | `get_layer_properties` | Get detailed properties of a specific layer |
 | `set_layer_properties` | Set layer properties (position, scale, opacity, etc.) |
@@ -116,7 +117,7 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `set_parent` | Set a layer's parent (for hierarchical animation) |
 | `reorder_layer` | Move a layer to a different position in the stack |
 
-### Animation & Keyframes (5 tools)
+### Animation & Keyframes (7 tools)
 | Tool | Description |
 |------|-------------|
 | `add_keyframe` | Add a keyframe to any animatable property |
@@ -124,6 +125,8 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `set_keyframe_easing` | Set easing on a specific keyframe |
 | `set_all_keyframes_easing` | Apply easing to all keyframes on a property |
 | `remove_keyframes` | Remove all keyframes from a property |
+| `set_time_remap` | Enable time remapping for speed ramps, freeze frames, reverse |
+| `set_spatial_interpolation` | Set linear or Bézier motion paths on Position keyframes |
 
 ### Expressions (5 tools)
 | Tool | Description |
@@ -185,13 +188,21 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `add_text_animator` | Add a text animator with range selector and properties |
 | `set_text_animator_property` | Update properties of an existing text animator |
 
-### Shape Operations (4 tools) — NEW
+### Shape Operations (12 tools) — NEW
 | Tool | Description |
 |------|-------------|
 | `add_shape_group` | Add a shape group to an existing shape layer |
 | `set_shape_fill` | Set the fill color and opacity of a shape |
 | `set_shape_stroke` | Set the stroke color, width, and style of a shape |
 | `add_shape_path` | Add a custom Bezier path to a shape group |
+| `add_trim_paths` | Trim Paths for draw-on/draw-off line animation |
+| `add_repeater` | Repeater to clone and offset shape contents |
+| `add_wiggle_paths` | Wiggle Paths for organic/rough shape edges |
+| `add_merge_paths` | Merge Paths for boolean shape operations |
+| `add_offset_paths` | Offset Paths to expand or contract shape outlines |
+| `add_pucker_bloat` | Pucker & Bloat for organic shape distortion |
+| `add_zig_zag` | Zig Zag for wave/angular edge distortion |
+| `add_twist` | Twist for spiral shape distortion |
 
 ### Pre-compositions (2 tools) — NEW
 | Tool | Description |
@@ -210,8 +221,8 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 |------|-------------|
 | `set_layer_quality` | Set render quality (best, draft, wireframe) |
 | `set_motion_blur` | Enable or disable motion blur on a layer |
-| `set_frame_blending` | Configure frame blending mode |
-| `set_layer_collapse` | Toggle the collapse transformations switch |
+| `set_layer_timing` | Set layer in/out points, start time, and time stretch |
+| `set_layer_flags` | Set boolean flags (shy, solo, locked, guide, collapse, frame blend) |
 
 ### Rendering (3 tools)
 | Tool | Description |
