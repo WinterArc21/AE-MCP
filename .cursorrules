@@ -15,7 +15,7 @@ When using `run_extendscript`, all code MUST be ES3:
 ### Tool Workflow
 1. **Create composition first** — always start with `create_composition`
 2. **Add layers** — use `add_solid_layer`, `add_text_layer`, `add_shape_layer`, etc.
-3. **Animate** — use `add_keyframe` or `batch_keyframes`, then apply easing
+3. **Animate** — use `add_keyframe` or `add_keyframes_batch`, then apply easing
 4. **Apply effects** — use `apply_effect` with the match name from docs
 5. **Preview** — render to file with `add_to_render_queue` + `start_render`
 
@@ -64,8 +64,8 @@ Follow these guidelines for professional output:
 - Square: 1080x1080 @ 30fps
 
 **Animation Patterns:**
-- Default entrance: `fade_in` + `slide_in` from bottom
-- Default exit: `fade_out` (+ optional slide up)
+- Default entrance: `apply_fade_in` + `apply_slide_in` from bottom
+- Default exit: `apply_fade_out` (+ optional slide up)
 - Emphasis: scale pulse 100% → 110% → 100%
 - Always stagger sequential elements — simultaneous animation is amateur
 

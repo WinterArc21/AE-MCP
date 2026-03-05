@@ -12,6 +12,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "install-extension": "node scripts/install-extension.js",
+    "check:readme-tools": "node scripts/check-readme-tools.js",
     "typecheck": "tsc --noEmit",
     "build:tsc": "tsc"
   },

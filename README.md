@@ -80,7 +80,7 @@ Cursor users also benefit from the included `.cursorrules` file, which gives the
 
 Replace `/path/to/ae-mcp` with the actual path to this directory.
 
-## Available Tools (82+ total)
+## Available Tools (86 total)
 
 ### Project Management (5 tools)
 | Tool | Description |
@@ -91,16 +91,17 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `open_project` | Open a project file |
 | `import_file` | Import a file (image, video, audio, AI) |
 
-### Composition (5 tools)
+### Composition (6 tools)
 | Tool | Description |
 |------|-------------|
 | `create_composition` | Create a new composition |
 | `get_composition` | Get details about a composition |
 | `list_compositions` | List all compositions in the project |
 | `duplicate_composition` | Duplicate a composition |
-| `set_comp_settings` | Update comp settings (resolution, fps, duration, bg) |
+| `set_composition_settings` | Update comp settings (resolution, fps, duration, bg) |
+| `list_fonts` | Query installed fonts by family or PostScript name |
 
-### Layer Management (13 tools)
+### Layer Management (14 tools)
 | Tool | Description |
 |------|-------------|
 | `add_solid_layer` | Add a solid-color layer |
@@ -110,18 +111,19 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `add_adjustment_layer` | Add an adjustment layer |
 | `add_comp_layer` | Add an existing composition as a layer (comp nesting) |
 | `list_layers` | List all layers in a composition |
-| `get_layer_properties` | Get detailed properties of a specific layer |
+| `get_layer_info` | Get detailed properties of a specific layer |
 | `set_layer_properties` | Set layer properties (position, scale, opacity, etc.) |
 | `delete_layer` | Delete a layer by index |
 | `duplicate_layer` | Duplicate a layer |
-| `set_parent` | Set a layer's parent (for hierarchical animation) |
+| `set_layer_parent` | Set a layer's parent (for hierarchical animation) |
 | `reorder_layer` | Move a layer to a different position in the stack |
+| `get_text_bounds` | Measure a layer's bounds in comp space |
 
 ### Animation & Keyframes (7 tools)
 | Tool | Description |
 |------|-------------|
 | `add_keyframe` | Add a keyframe to any animatable property |
-| `batch_keyframes` | Add multiple keyframes at once |
+| `add_keyframes_batch` | Add multiple keyframes at once |
 | `set_keyframe_easing` | Set easing on a specific keyframe |
 | `set_all_keyframes_easing` | Apply easing to all keyframes on a property |
 | `remove_keyframes` | Remove all keyframes from a property |
@@ -133,68 +135,64 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 |------|-------------|
 | `set_expression` | Set a custom expression on a property |
 | `remove_expression` | Remove an expression |
-| `wiggle_expression` | Apply a wiggle expression |
-| `loop_expression` | Apply a loopIn/loopOut expression |
-| `link_expression` | Link a property to another property via expression |
+| `add_wiggle` | Apply a wiggle expression |
+| `add_loop` | Apply a loopOut expression |
+| `link_properties` | Link a property to another property via expression |
 
 ### Motion Design Presets (8 tools)
 | Tool | Description |
 |------|-------------|
-| `fade_in` | Fade a layer in from transparent |
-| `fade_out` | Fade a layer out to transparent |
-| `slide_in` | Slide a layer in from off-screen (any direction) |
-| `scale_in` | Scale a layer from 0% to 100% |
-| `bounce_in` | Bounce-in effect with elastic easing |
-| `typewriter` | Character-by-character text reveal |
+| `apply_fade_in` | Fade a layer in from transparent |
+| `apply_fade_out` | Fade a layer out to transparent |
+| `apply_slide_in` | Slide a layer in from off-screen (any direction) |
+| `apply_scale_in` | Scale a layer from 0% to 100% |
+| `apply_bounce_in` | Bounce-in effect with elastic easing |
+| `apply_typewriter` | Character-by-character text reveal |
 | `apply_color_theme` | Set consistent colors across layers |
 | `create_scene` | Create a full scene with background + title + subtitle |
 
 ### Effects (7 tools) — NEW
 | Tool | Description |
 |------|-------------|
-| `add_effect` | Add any After Effects effect to a layer by match name |
+| `apply_effect` | Add any After Effects effect to a layer by match name |
 | `set_effect_property` | Set a property value on an applied effect |
 | `get_effect_properties` | Get all properties of an applied effect |
 | `remove_effect` | Remove an effect from a layer |
-| `enable_effect` | Enable or disable an effect |
-| `duplicate_effect` | Duplicate an applied effect |
-| `reorder_effect` | Change the order of effects on a layer |
+| `list_layer_effects` | List all effects on a layer |
+| `get_effect_docs` | Read bundled docs for a specific effect |
+| `list_available_effects` | List available effects by category and match name |
 
-### Blend Modes (2 tools) — NEW
+### Compositing (3 tools) — NEW
 | Tool | Description |
 |------|-------------|
 | `set_blend_mode` | Set the blending mode on a layer |
+| `get_blend_mode` | Inspect the current blending mode on a layer |
 | `set_track_matte` | Configure track matte (alpha, luma) between layers |
 
-### Masks (4 tools) — NEW
+### Masks (3 tools) — NEW
 | Tool | Description |
 |------|-------------|
-| `add_mask` | Add a mask (rectangle, ellipse, or path) to a layer |
+| `add_mask` | Add a mask (rectangle or ellipse) to a layer |
+| `list_masks` | List all masks on a layer |
 | `set_mask_properties` | Set mask feather, opacity, expansion, and mode |
-| `remove_mask` | Remove a mask from a layer |
-| `set_mask_path` | Update the path vertices of an existing mask |
 
 ### 3D (4 tools) — NEW
 | Tool | Description |
 |------|-------------|
-| `set_layer_3d` | Toggle a layer's 3D switch |
+| `set_3d_layer` | Toggle a layer's 3D switch |
 | `add_camera` | Add a camera layer to the composition |
 | `add_light` | Add a light layer (ambient, spot, point, parallel) |
-| `set_camera_properties` | Configure camera zoom, depth of field, and focus |
+| `set_3d_position` | Configure 3D layer position and rotation |
 
 ### Text Animators (2 tools) — NEW
 | Tool | Description |
 |------|-------------|
 | `add_text_animator` | Add a text animator with range selector and properties |
-| `set_text_animator_property` | Update properties of an existing text animator |
+| `set_text_animator_values` | Update properties of an existing text animator |
 
-### Shape Operations (12 tools) — NEW
+### Shape Operations (8 tools) — NEW
 | Tool | Description |
 |------|-------------|
-| `add_shape_group` | Add a shape group to an existing shape layer |
-| `set_shape_fill` | Set the fill color and opacity of a shape |
-| `set_shape_stroke` | Set the stroke color, width, and style of a shape |
-| `add_shape_path` | Add a custom Bezier path to a shape group |
 | `add_trim_paths` | Trim Paths for draw-on/draw-off line animation |
 | `add_repeater` | Repeater to clone and offset shape contents |
 | `add_wiggle_paths` | Wiggle Paths for organic/rough shape edges |
@@ -208,13 +206,13 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | Tool | Description |
 |------|-------------|
 | `precompose_layers` | Pre-compose selected layers into a new composition |
-| `open_precomp` | Open a pre-comp in its own composition panel |
+| `nest_composition` | Add an existing composition as a layer inside another composition |
 
 ### Markers (2 tools) — NEW
 | Tool | Description |
 |------|-------------|
-| `add_comp_marker` | Add a composition marker at a specified time |
-| `add_layer_marker` | Add a marker to a specific layer |
+| `add_marker` | Add a composition or layer marker at a specified time |
+| `list_markers` | List markers on a composition or layer |
 
 ### Layer Settings (4 tools) — NEW
 | Tool | Description |
@@ -224,24 +222,28 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 | `set_layer_timing` | Set layer in/out points, start time, and time stretch |
 | `set_layer_flags` | Set boolean flags (shy, solo, locked, guide, collapse, frame blend) |
 
-### Rendering (3 tools)
+### Rendering & Preview (5 tools)
 | Tool | Description |
 |------|-------------|
 | `add_to_render_queue` | Add a composition to the render queue |
 | `get_render_status` | Check render queue status |
 | `start_render` | Start rendering |
+| `capture_frame` | Capture a single PNG frame from a composition |
+| `capture_frame_sequence` | Capture multiple evenly spaced PNG frames |
 
 ### Scripting (1 tool)
 | Tool | Description |
 |------|-------------|
 | `run_extendscript` | Execute raw ExtendScript (escape hatch for advanced use) |
 
+> **Note:** Custom mask paths, shape group creation, and arbitrary Bézier path editing are not yet available as structured tools. Use `run_extendscript` for these operations.
+
 ## Agent Knowledge Base
 
 The `docs/` folder is a structured knowledge base designed for AI agents. It provides reference material that agents can consult to produce higher-quality, more idiomatic After Effects output — without needing to guess at effect names, expression syntax, or design conventions.
 
 ### docs/effects/ — Effect References (41 files)
-Per-effect documentation covering match names, property names, value ranges, and usage notes for the most commonly used After Effects built-in effects. AI agents use these to call `add_effect` and `set_effect_property` with correct parameters the first time.
+Per-effect documentation covering match names, property names, value ranges, and usage notes for the most commonly used After Effects built-in effects. AI agents use these to call `apply_effect` and `set_effect_property` with correct parameters the first time.
 
 ### docs/expressions/ — Expression Recipes (6 files)
 | File | Contents |
