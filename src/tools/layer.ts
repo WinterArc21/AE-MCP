@@ -16,6 +16,7 @@
  *   - duplicate_layer        : copy a layer within the same comp
  *   - set_layer_parent       : assign or remove a layer parent
  *   - reorder_layer          : move a layer in the stacking order
+ *   - get_text_bounds        : get bounding box of a layer in comp space
  *
  * All ExtendScript is ES3-compatible (var only, no arrow functions,
  * no template literals, string concatenation only).
@@ -1234,6 +1235,81 @@ export function registerLayerTools(server: McpServer): void {
           "return __r;\n"
       );
       return run(script, "add_comp_layer");
+    }
+  );
+
+  // ── get_text_bounds ─────────────────────────────────────────────────────────
+
+  server.tool(
+    "get_text_bounds",
+    "Get the bounding box of a layer (especially useful for text layers) in both " +
+      "layer-local and composition coordinate space. Returns precise dimensions " +
+      "and position so you can align elements, check for overlaps, verify text " +
+      "fits within the frame, and detect safe-area violations. " +
+      "Uses sourceRectAtTime() and toComp() to handle position, anchor point, " +
+      "scale, rotation, and the full parent chain correctly. " +
+      "safeAreaViolation is true if any edge is within 10% of the comp boundary.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric id of the composition."),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the layer to measure."),
+      time: z
+        .number()
+        .min(0)
+        .optional()
+        .default(0)
+        .describe("Time in seconds at which to measure bounds (default: 0)."),
+    },
+    async ({ compId, layerIndex, time }) => {
+      const script = wrapWithReturn(
+        findCompById("_gtbComp", compId) +
+          getLayer("_gtbComp", String(layerIndex), "_gtbLayer") +
+          "var _gtbTime = " + (time ?? 0) + ";\n" +
+          "var _gtbRect = _gtbLayer.sourceRectAtTime(_gtbTime, true);\n" +
+          "var _gtbLocalCX = _gtbRect.left + _gtbRect.width / 2;\n" +
+          "var _gtbLocalCY = _gtbRect.top + _gtbRect.height / 2;\n" +
+          "var _gtbTL = _gtbLayer.toComp([_gtbRect.left, _gtbRect.top], _gtbTime);\n" +
+          "var _gtbTR = _gtbLayer.toComp([_gtbRect.left + _gtbRect.width, _gtbRect.top], _gtbTime);\n" +
+          "var _gtbBL = _gtbLayer.toComp([_gtbRect.left, _gtbRect.top + _gtbRect.height], _gtbTime);\n" +
+          "var _gtbBR = _gtbLayer.toComp([_gtbRect.left + _gtbRect.width, _gtbRect.top + _gtbRect.height], _gtbTime);\n" +
+          "var _gtbMinX = Math.min(_gtbTL[0], _gtbTR[0], _gtbBL[0], _gtbBR[0]);\n" +
+          "var _gtbMaxX = Math.max(_gtbTL[0], _gtbTR[0], _gtbBL[0], _gtbBR[0]);\n" +
+          "var _gtbMinY = Math.min(_gtbTL[1], _gtbTR[1], _gtbBL[1], _gtbBR[1]);\n" +
+          "var _gtbMaxY = Math.max(_gtbTL[1], _gtbTR[1], _gtbBL[1], _gtbBR[1]);\n" +
+          "var _gtbCompW = _gtbComp.width;\n" +
+          "var _gtbCompH = _gtbComp.height;\n" +
+          "var _gtbMarginX = _gtbCompW * 0.1;\n" +
+          "var _gtbMarginY = _gtbCompH * 0.1;\n" +
+          "var _gtbSafe = (_gtbMinX < _gtbMarginX || _gtbMinY < _gtbMarginY || _gtbMaxX > _gtbCompW - _gtbMarginX || _gtbMaxY > _gtbCompH - _gtbMarginY);\n" +
+          "return { success: true, data: {\n" +
+          "  compSpace: {\n" +
+          "    top: Math.round(_gtbMinY * 100) / 100,\n" +
+          "    left: Math.round(_gtbMinX * 100) / 100,\n" +
+          "    right: Math.round(_gtbMaxX * 100) / 100,\n" +
+          "    bottom: Math.round(_gtbMaxY * 100) / 100,\n" +
+          "    width: Math.round((_gtbMaxX - _gtbMinX) * 100) / 100,\n" +
+          "    height: Math.round((_gtbMaxY - _gtbMinY) * 100) / 100,\n" +
+          "    centerX: Math.round((_gtbMinX + _gtbMaxX) / 2 * 100) / 100,\n" +
+          "    centerY: Math.round((_gtbMinY + _gtbMaxY) / 2 * 100) / 100\n" +
+          "  },\n" +
+          "  layerSpace: {\n" +
+          "    top: _gtbRect.top,\n" +
+          "    left: _gtbRect.left,\n" +
+          "    width: _gtbRect.width,\n" +
+          "    height: _gtbRect.height\n" +
+          "  },\n" +
+          "  compSize: { width: _gtbCompW, height: _gtbCompH },\n" +
+          "  safeAreaViolation: _gtbSafe\n" +
+          "} };\n"
+      );
+      return run(script, "get_text_bounds");
     }
   );
 }

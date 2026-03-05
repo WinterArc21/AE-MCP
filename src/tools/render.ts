@@ -7,6 +7,8 @@
  *   - add_to_render_queue   Add a composition to the render queue with output settings
  *   - get_render_status     Return the state of all items in the render queue
  *   - start_render          Render all QUEUED items (blocking until complete)
+ *   - capture_frame         Capture a single PNG frame from a comp
+ *   - capture_frame_sequence  Capture N evenly-spaced frames as a filmstrip
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -200,9 +202,10 @@ export function registerRenderTools(server: McpServer): void {
     "Capture a single PNG frame from a composition at a given time. " +
     "Returns the file path of the saved PNG image. Use this to visually verify " +
     "layouts, effects, colors, and animations during iterative scene building. " +
-    "The frame is rendered directly (not via the render queue) so it is fast — " +
-    "typically 1-5 seconds. After capturing, use view_file on the returned " +
-    "outputPath to see the frame. " +
+    "The comp is automatically opened in AE's viewer before capture — no manual " +
+    "setup needed. The frame is rendered directly (not via the render queue) so " +
+    "it is fast — typically 1-5 seconds. After capturing, use view_file on the " +
+    "returned outputPath to see the frame. " +
     "Tip: capture at key moments (0s for first frame, midpoint for animations, " +
     "last frame for end state) to verify your work visually.",
     {
@@ -258,6 +261,8 @@ export function registerRenderTools(server: McpServer): void {
         '  return { success: false, error: { message: "saveFrameToPng is not available in this version of After Effects. Requires CC 2014 (v13.0) or later.", code: "UNSUPPORTED_AE_VERSION" } };\n' +
         "}\n" +
         // Capture the frame
+        "_cfComp.openInViewer();\n" +
+        "$.sleep(500);\n" +
         "_cfComp.saveFrameToPng(_cfTime, _cfFile);\n" +
         // Verify the file was created
         "if (!_cfFile.exists) {\n" +
@@ -276,6 +281,101 @@ export function registerRenderTools(server: McpServer): void {
       const script = wrapWithReturn(body);
       try {
         return runScript(script, "capture_frame");
+      } catch (err) {
+        return {
+          content: [{ type: "text", text: "Error: " + String(err) }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  // ─── capture_frame_sequence ────────────────────────────────────────────────
+  server.tool(
+    "capture_frame_sequence",
+    "Capture multiple PNG frames at evenly-spaced intervals across a composition " +
+    "(or a time range). Returns an array of PNG file paths — like a filmstrip. " +
+    "Use this to visually scrub through an animation without calling capture_frame " +
+    "N times individually. The comp is automatically opened in the viewer. " +
+    "Each frame takes ~1s to render; count=12 ≈ 12-15 seconds total. " +
+    "After capturing, use view_file on each outputPath to review the sequence.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition to capture frames from"),
+      count: z
+        .number()
+        .int()
+        .min(2)
+        .max(12)
+        .describe("Number of frames to capture (2-12)"),
+      startTime: z
+        .number()
+        .min(0)
+        .optional()
+        .describe("Start of the time range in seconds (default: 0)"),
+      endTime: z
+        .number()
+        .min(0)
+        .optional()
+        .describe("End of the time range in seconds (default: comp.duration)"),
+      outputDir: z
+        .string()
+        .optional()
+        .describe(
+          "Directory to save PNG files. If omitted, uses the system temp directory."
+        ),
+    },
+    async ({ compId, count, startTime, endTime, outputDir }) => {
+      // Resolve output directory
+      let resolvedDir: string;
+      if (outputDir) {
+        resolvedDir = outputDir;
+      } else {
+        const os = await import("os");
+        resolvedDir = os.tmpdir();
+      }
+      const timestamp = Date.now();
+      const prefix = resolvedDir.replace(/\\/g, "/") + "/ae_seq_" + compId + "_" + timestamp + "_";
+
+      const body =
+        findCompById("_cfsComp", compId) +
+        "_cfsComp.openInViewer();\n" +
+        "$.sleep(400);\n" +
+        "var _cfsResults = [];\n" +
+        "var _cfsStart = " + (startTime ?? 0) + ";\n" +
+        "var _cfsEnd = " + (endTime !== undefined ? endTime : "_cfsComp.duration") + ";\n" +
+        "if (_cfsEnd > _cfsComp.duration) _cfsEnd = _cfsComp.duration;\n" +
+        "if (_cfsStart > _cfsEnd) _cfsStart = _cfsEnd;\n" +
+        "var _cfsCount = " + count + ";\n" +
+        "var _cfsInterval = (_cfsCount > 1) ? (_cfsEnd - _cfsStart) / (_cfsCount - 1) : 0;\n" +
+        "for (var _cfsi = 0; _cfsi < _cfsCount; _cfsi++) {\n" +
+        "  var _cfsT = _cfsStart + (_cfsInterval * _cfsi);\n" +
+        "  if (_cfsT > _cfsComp.duration) _cfsT = _cfsComp.duration;\n" +
+        '  var _cfsFile = new File("' + escapeString(prefix) + '" + _cfsi + ".png");\n' +
+        "  var _cfsCaptured = false;\n" +
+        "  try {\n" +
+        "    _cfsComp.saveFrameToPng(_cfsT, _cfsFile);\n" +
+        "    _cfsCaptured = _cfsFile.exists;\n" +
+        "  } catch (_cfsErr) {}\n" +
+        "  if (_cfsi < _cfsCount - 1) { $.sleep(300); }\n" +
+        "  _cfsResults.push({\n" +
+        "    time: Math.round(_cfsT * 1000) / 1000,\n" +
+        "    outputPath: _cfsFile.fsName,\n" +
+        "    captured: _cfsCaptured\n" +
+        "  });\n" +
+        "}\n" +
+        "return { success: true, data: {\n" +
+        "  compName: _cfsComp.name,\n" +
+        "  compId: _cfsComp.id,\n" +
+        "  frames: _cfsResults\n" +
+        "} };\n";
+
+      const script = wrapWithReturn(body);
+      try {
+        return runScript(script, "capture_frame_sequence");
       } catch (err) {
         return {
           content: [{ type: "text", text: "Error: " + String(err) }],

@@ -9,6 +9,7 @@
  *   - list_compositions        : lists all comps in the project
  *   - duplicate_composition    : duplicates a comp, optionally renames it
  *   - set_composition_settings : updates width/height/duration/fps/bgColor/name
+ *   - list_fonts              : query installed fonts by family/PostScript name
  *
  * All ExtendScript is ES3-compatible (var only, no arrow functions,
  * no template literals, string concatenation only).
@@ -311,6 +312,75 @@ export function registerCompositionTools(server: McpServer): void {
         "return __r;\n"
       );
       return run(script, "set_composition_settings");
+    }
+  );
+
+  // ── list_fonts ──────────────────────────────────────────────────────────
+
+  server.tool(
+    "list_fonts",
+    "List all fonts installed and available to After Effects. " +
+      "Returns PostScript name (use this for font= parameter), family, style, and full name. " +
+      "WARNING: Always provide a query to filter results — calling without a query can return " +
+      "1000+ fonts and flood the context window. " +
+      "Use this before setting fonts on text layers to verify the exact PostScript name. " +
+      "Example: list_fonts(query='montserrat') → find all Montserrat weights.",
+    {
+      query: z
+        .string()
+        .optional()
+        .describe(
+          "Filter fonts by family or PostScript name (case-insensitive). " +
+            "E.g. 'montserrat' returns all Montserrat weights. " +
+            "STRONGLY RECOMMENDED — omitting returns all installed fonts."
+        ),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .default(50)
+        .describe(
+          "Maximum number of fonts to return (default: 50). " +
+            "Acts as a safety net against flooding the context window."
+        ),
+    },
+    async ({ query, limit }) => {
+      const filterExpr = query
+        ? 'var _lfQuery = "' + escapeString(query.toLowerCase()) + '";\n'
+        : 'var _lfQuery = "";\n';
+
+      const script = wrapWithReturn(
+        "var _lfFonts = app.fonts;\n" +
+          "var _lfResults = [];\n" +
+          "var _lfTotal = 0;\n" +
+          filterExpr +
+          "for (var _lfi = 0; _lfi < _lfFonts.length; _lfi++) {\n" +
+          "  var _lfF = _lfFonts[_lfi];\n" +
+          "  var _lfPsName = _lfF.postScriptName;\n" +
+          "  var _lfFamily = _lfF.family;\n" +
+          "  var _lfStyle = _lfF.style;\n" +
+          "  var _lfFullName = _lfF.fullName;\n" +
+          '  if (_lfQuery !== "") {\n' +
+          "    var _lfLower = (_lfPsName + \" \" + _lfFamily + \" \" + _lfFullName).toLowerCase();\n" +
+          "    if (_lfLower.indexOf(_lfQuery) === -1) { continue; }\n" +
+          "  }\n" +
+          "  _lfTotal++;\n" +
+          "  if (_lfResults.length < " + limit + ") {\n" +
+          "    _lfResults.push({\n" +
+          "      postScriptName: _lfPsName,\n" +
+          "      family: _lfFamily,\n" +
+          "      style: _lfStyle,\n" +
+          "      fullName: _lfFullName\n" +
+          "    });\n" +
+          "  }\n" +
+          "}\n" +
+          "return { success: true, data: {\n" +
+          "  fonts: _lfResults,\n" +
+          "  total: _lfTotal,\n" +
+          "  truncated: (_lfTotal > " + limit + ")\n" +
+          "} };\n"
+      );
+      return run(script, "list_fonts");
     }
   );
 }
