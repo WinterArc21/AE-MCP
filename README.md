@@ -1,4 +1,4 @@
-﻿# ae-mcp â€” After Effects MCP Server
+# ae-mcp — After Effects MCP Server
 
 AI-powered motion design automation for Adobe After Effects. Connect Claude, Cursor, or any MCP-compatible AI assistant directly to After Effects.
 
@@ -7,11 +7,11 @@ AI-powered motion design automation for Adobe After Effects. Connect Claude, Cur
 ## How it works
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    stdio     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   file bridge   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  AI Client   â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–ºâ”‚  MCP Server  â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–ºâ”‚  After Effects   â”‚
-â”‚ (Claude, etc)â”‚             â”‚  (Node.js)   â”‚  ~/Documents/   â”‚  CEP Panel +     â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜             â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  ae-mcp-commands/ â”‚  ExtendScript    â”‚
-                                                               â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────┐    stdio     ┌─────────────┐   file bridge   ┌──────────────────┐
+│  AI Client   │◄───────────►│  MCP Server  │◄───────────────►│  After Effects   │
+│ (Claude, etc)│             │  (Node.js)   │  ~/Documents/   │  CEP Panel +     │
+└─────────────┘             └─────────────┘  ae-mcp-commands/ │  ExtendScript    │
+                                                               └──────────────────┘
 ```
 
 1. The AI sends tool calls via MCP (stdio transport)
@@ -84,7 +84,7 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 
 `ae-mcp` currently ships **118 tools across 21 modules**.
 
-For the full copy-paste API reference, see [TOOLS.md](C:\Users\ahmed\OneDrive\Stuff\Code Projects\AE-MCP\TOOLS.md).
+For the full copy-paste API reference, see [TOOLS.md](TOOLS.md).
 
 ### Tool Modules
 - Project Management: 5 tools
@@ -118,12 +118,12 @@ For the full copy-paste API reference, see [TOOLS.md](C:\Users\ahmed\OneDrive\St
 
 ## Agent Knowledge Base
 
-The `docs/` folder is a structured knowledge base designed for AI agents. It provides reference material that agents can consult to produce higher-quality, more idiomatic After Effects output â€” without needing to guess at effect names, expression syntax, or design conventions.
+The `docs/` folder is a structured knowledge base designed for AI agents. It provides reference material that agents can consult to produce higher-quality, more idiomatic After Effects output — without needing to guess at effect names, expression syntax, or design conventions.
 
-### docs/effects/ â€” Effect References (41 files)
+### docs/effects/ — Effect References (41 files)
 Per-effect documentation covering match names, property names, value ranges, and usage notes for the most commonly used After Effects built-in effects. AI agents use these to call `apply_effect` and `set_effect_property` with correct parameters the first time.
 
-### docs/expressions/ â€” Expression Recipes (6 files)
+### docs/expressions/ — Expression Recipes (6 files)
 | File | Contents |
 |------|----------|
 | `README.md` | Overview of the expression system and how to apply recipes |
@@ -133,7 +133,7 @@ Per-effect documentation covering match names, property names, value ranges, and
 | `color.md` | Color expressions (HSL shifts, reactive color, gradients) |
 | `utility.md` | Utility expressions (index offsets, conditionals, math helpers) |
 
-### docs/templates/ â€” Scene Templates (6 files)
+### docs/templates/ — Scene Templates (6 files)
 | File | Contents |
 |------|----------|
 | `README.md` | How to instantiate and customize templates |
@@ -224,7 +224,7 @@ ae-mcp/
 
 ## Troubleshooting
 
-### "Tool timed out â€” is the AE MCP Bridge panel open?"
+### "Tool timed out — is the AE MCP Bridge panel open?"
 - Make sure After Effects is running
 - Open the panel: **Window > Extensions > AE MCP Bridge**
 - The panel should show "Waiting for commands..."
@@ -248,6 +248,7 @@ Bridge architecture inspired by [p10q/ae-mcp](https://github.com/p10q/ae-mcp). E
 ## License
 
 MIT
+
 
 
 

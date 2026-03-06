@@ -191,7 +191,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  var solid = comp.layers.addSolid(" +
           colorLiteral(color) +
           ', "' +
@@ -319,7 +319,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           '  var textLayer = comp.layers.addText("' +
           escapeString(text) +
           '");\n' +
@@ -499,7 +499,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  var shapeLayer = comp.layers.addShape();\n" +
           '  shapeLayer.name = "' +
           escapeString(name) +
@@ -556,7 +556,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  var nullLayer = comp.layers.addNull();\n" +
           renameBlock +
           "  __r = { success: true, data: " +
@@ -599,7 +599,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           '  var adjLayer = comp.layers.addSolid([1, 1, 1], "' +
           layerName +
           '", comp.width, comp.height, 1.0);\n' +
@@ -635,7 +635,7 @@ export function registerLayerTools(server: McpServer): void {
     },
     async ({ compId }) => {
       const script = wrapWithReturn(
-        findCompById(String(compId), "comp") +
+        findCompById("comp", compId) +
           "var layers = [];\n" +
           "for (var i = 1; i <= comp.numLayers; i++) {\n" +
           "  var lyr = comp.layer(i);\n" +
@@ -694,7 +694,7 @@ export function registerLayerTools(server: McpServer): void {
     },
     async ({ compId, layerIndex }) => {
       const script = wrapWithReturn(
-        findCompById(String(compId), "comp") +
+        findCompById("comp", compId) +
           getLayer("comp", String(layerIndex), "layer") +
           // Type detection
           'var typeLabel = "AV";\n' +
@@ -912,7 +912,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  " +
           getLayer("comp", String(layerIndex), "layer")
             .split("\n")
@@ -958,7 +958,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  " +
           getLayer("comp", String(layerIndex), "layer")
             .split("\n")
@@ -1002,7 +1002,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  " +
           getLayer("comp", String(layerIndex), "layer")
             .split("\n")
@@ -1070,7 +1070,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  " +
           getLayer("comp", String(childIndex), "childLayer")
             .split("\n")
@@ -1129,7 +1129,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  " +
           getLayer("comp", String(layerIndex), "layer")
             .split("\n")
@@ -1219,7 +1219,7 @@ export function registerLayerTools(server: McpServer): void {
           "var __r;\n" +
           "try {\n" +
           "  " +
-          findCompById(String(compId), "comp").split("\n").join("\n  ") +
+          findCompById("comp", compId).split("\n").join("\n  ") +
           "  var srcItem = app.project.itemByID(" + sourceCompId + ");\n" +
           "  if (!srcItem || !(srcItem instanceof CompItem)) {\n" +
           '    throw new Error("Source composition not found with id: ' + sourceCompId + '");\n' +
