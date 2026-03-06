@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 const repoRoot = process.cwd();
-const readmePath = path.join(repoRoot, "README.md");
+const toolsDocPath = path.join(repoRoot, "TOOLS.md");
 const toolsDir = path.join(repoRoot, "src", "tools");
 
 function readRegisteredTools() {
@@ -20,18 +20,18 @@ function readRegisteredTools() {
   return [...toolNames].sort();
 }
 
-function readReadmeTools() {
-  const readme = fs.readFileSync(readmePath, "utf8");
-  const start = readme.indexOf("## Available Tools");
-  const end = readme.indexOf("## Agent Knowledge Base");
+function readToolsDocTools() {
+  const toolsDoc = fs.readFileSync(toolsDocPath, "utf8");
+  const start = toolsDoc.indexOf("## Project Management");
+  const end = toolsDoc.length;
 
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error("Could not find the Available Tools section in README.md");
+    throw new Error("Could not find the tool sections in TOOLS.md");
   }
 
-  const section = readme.slice(start, end);
+  const section = toolsDoc.slice(start, end);
   const toolNames = new Set();
-  const matches = section.matchAll(/`([a-z0-9_]+)`/g);
+  const matches = section.matchAll(/^### `([a-z0-9_]+)`$/gm);
 
   for (const match of matches) {
     toolNames.add(match[1]);
@@ -45,18 +45,18 @@ function diff(left, right) {
 }
 
 const sourceTools = readRegisteredTools();
-const readmeTools = readReadmeTools();
-const missingFromReadme = diff(sourceTools, readmeTools);
-const missingFromSource = diff(readmeTools, sourceTools);
+const toolsDocTools = readToolsDocTools();
+const missingFromToolsDoc = diff(sourceTools, toolsDocTools);
+const missingFromSource = diff(toolsDocTools, sourceTools);
 
-if (missingFromReadme.length === 0 && missingFromSource.length === 0) {
-  console.log(`README tool list is in sync (${sourceTools.length} tools).`);
+if (missingFromToolsDoc.length === 0 && missingFromSource.length === 0) {
+  console.log(`TOOLS.md tool list is in sync (${sourceTools.length} tools).`);
   process.exit(0);
 }
 
-if (missingFromReadme.length > 0) {
-  console.error("Tools registered in source but missing from README:");
-  for (const tool of missingFromReadme) {
+if (missingFromToolsDoc.length > 0) {
+  console.error("Tools registered in source but missing from TOOLS.md:");
+  for (const tool of missingFromToolsDoc) {
     console.error(`  - ${tool}`);
   }
 }

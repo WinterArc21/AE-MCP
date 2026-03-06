@@ -10,6 +10,9 @@
  *   - duplicate_composition    : duplicates a comp, optionally renames it
  *   - set_composition_settings : updates width/height/duration/fps/bgColor/name
  *   - list_fonts              : query installed fonts by family/PostScript name
+ *   - set_work_area           : set work area start and duration
+ *   - set_comp_renderer       : set the rendering plugin for a composition
+ *   - set_motion_blur_settings: configure motion blur settings
  *
  * All ExtendScript is ES3-compatible (var only, no arrow functions,
  * no template literals, string concatenation only).
@@ -381,6 +384,177 @@ export function registerCompositionTools(server: McpServer): void {
           "} };\n"
       );
       return run(script, "list_fonts");
+    }
+  );
+
+  // ── set_work_area ───────────────────────────────────────────────────────
+
+  server.tool(
+    "set_work_area",
+    "Set the work area start and duration on a composition. " +
+      "The work area determines the region that is rendered and previewed.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric id of the composition."),
+      start: z
+        .number()
+        .describe("Work area start time in seconds."),
+      duration: z
+        .number()
+        .positive()
+        .describe("Work area duration in seconds."),
+    },
+    async ({ compId, start, duration }) => {
+      const script = wrapWithReturn(
+        'app.beginUndoGroup("set_work_area");\n' +
+        "var __r;\n" +
+        "try {\n" +
+        "  " + findCompById("comp", compId).split("\n").join("\n  ") +
+        "  if (" + start + " < 0 || " + start + " > comp.duration) {\n" +
+        '    __r = { success: false, error: { message: "Work area start must be between 0 and the composition duration.", code: "INVALID_PARAMS" } };\n' +
+        "  } else if (" + duration + " <= 0 || (" + start + " + " + duration + ") > comp.duration) {\n" +
+        '    __r = { success: false, error: { message: "Work area must fit within the composition duration.", code: "INVALID_PARAMS" } };\n' +
+        "  } else {\n" +
+        "    comp.workAreaStart = " + start + ";\n" +
+        "    comp.workAreaDuration = " + duration + ";\n" +
+        "    __r = { success: true, data: { compId: comp.id, compName: comp.name, workAreaStart: comp.workAreaStart, workAreaDuration: comp.workAreaDuration } };\n" +
+        "  }\n" +
+        "} finally {\n" +
+        "  app.endUndoGroup();\n" +
+        "}\n" +
+        "return __r;\n"
+      );
+      return run(script, "set_work_area");
+    }
+  );
+
+  // ── set_comp_renderer ──────────────────────────────────────────────────
+
+  server.tool(
+    "set_comp_renderer",
+    "Set the rendering plugin for a composition (e.g., 'ADBE Advanced 3d' for Cinema 4D renderer, " +
+      "'ADBE Ernst' for Classic 3D). Use get_project_item_info to see available renderers.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric id of the composition."),
+      renderer: z
+        .string()
+        .describe("Renderer plugin match name (e.g. 'ADBE Advanced 3d', 'ADBE Ernst')."),
+    },
+    async ({ compId, renderer }) => {
+      const safeRenderer = escapeString(renderer);
+
+      const script = wrapWithReturn(
+        'app.beginUndoGroup("set_comp_renderer");\n' +
+        "var __r;\n" +
+        "try {\n" +
+        "  " + findCompById("comp", compId).split("\n").join("\n  ") +
+        "  var _renderers = comp.renderers;\n" +
+        "  var _found = false;\n" +
+        "  for (var _ri = 0; _ri < _renderers.length; _ri++) {\n" +
+        "    if (_renderers[_ri] === \"" + safeRenderer + "\") { _found = true; break; }\n" +
+        "  }\n" +
+        "  if (!_found) {\n" +
+        "    var _rList = [];\n" +
+        "    for (var _rj = 0; _rj < _renderers.length; _rj++) { _rList.push(_renderers[_rj]); }\n" +
+        "    __r = { success: false, error: { message: \"Renderer \\\"" + safeRenderer + "\\\" not available. Available: \" + _rList.join(\", \"), code: \"INVALID_PARAMS\" } };\n" +
+        "  } else {\n" +
+        "    comp.renderer = \"" + safeRenderer + "\";\n" +
+        "    var _availArr = [];\n" +
+        "    for (var _rk = 0; _rk < comp.renderers.length; _rk++) { _availArr.push(comp.renderers[_rk]); }\n" +
+        "    __r = { success: true, data: { compId: comp.id, compName: comp.name, renderer: comp.renderer, availableRenderers: _availArr } };\n" +
+        "  }\n" +
+        "} finally {\n" +
+        "  app.endUndoGroup();\n" +
+        "}\n" +
+        "return __r;\n"
+      );
+      return run(script, "set_comp_renderer");
+    }
+  );
+
+  // ── set_motion_blur_settings ────────────────────────────────────────────
+
+  server.tool(
+    "set_motion_blur_settings",
+    "Configure motion blur settings on a composition. " +
+      "Enable motion blur and set shutter angle/phase for realistic motion blur on animated layers.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric id of the composition."),
+      enabled: z
+        .boolean()
+        .optional()
+        .describe("Enable or disable motion blur on the composition."),
+      shutterAngle: z
+        .number()
+        .min(0)
+        .max(720)
+        .optional()
+        .describe("Shutter angle in degrees (0-720). 180 is standard film motion blur."),
+      shutterPhase: z
+        .number()
+        .min(-360)
+        .max(360)
+        .optional()
+        .describe("Shutter phase in degrees (-360 to 360). Controls when the shutter opens relative to a frame."),
+      samplesPerFrame: z
+        .number()
+        .optional()
+        .describe("Number of motion blur samples per frame."),
+      adaptiveSampleLimit: z
+        .number()
+        .optional()
+        .describe("Maximum number of adaptive samples per frame."),
+    },
+    async ({ compId, enabled, shutterAngle, shutterPhase, samplesPerFrame, adaptiveSampleLimit }) => {
+      let setLines = "";
+      if (enabled !== undefined) {
+        setLines += "  comp.motionBlur = " + (enabled ? "true" : "false") + ";\n";
+      }
+      if (shutterAngle !== undefined) {
+        setLines += "  comp.shutterAngle = " + shutterAngle + ";\n";
+      }
+      if (shutterPhase !== undefined) {
+        setLines += "  comp.shutterPhase = " + shutterPhase + ";\n";
+      }
+      if (samplesPerFrame !== undefined) {
+        setLines += "  comp.motionBlurSamplesPerFrame = " + samplesPerFrame + ";\n";
+      }
+      if (adaptiveSampleLimit !== undefined) {
+        setLines += "  comp.motionBlurAdaptiveSampleLimit = " + adaptiveSampleLimit + ";\n";
+      }
+
+      const script = wrapWithReturn(
+        'app.beginUndoGroup("set_motion_blur_settings");\n' +
+        "var __r;\n" +
+        "try {\n" +
+        "  " + findCompById("comp", compId).split("\n").join("\n  ") +
+        setLines +
+        "  __r = { success: true, data: {\n" +
+        "    compId: comp.id,\n" +
+        "    compName: comp.name,\n" +
+        "    motionBlur: comp.motionBlur,\n" +
+        "    shutterAngle: comp.shutterAngle,\n" +
+        "    shutterPhase: comp.shutterPhase,\n" +
+        "    motionBlurSamplesPerFrame: comp.motionBlurSamplesPerFrame,\n" +
+        "    motionBlurAdaptiveSampleLimit: comp.motionBlurAdaptiveSampleLimit\n" +
+        "  } };\n" +
+        "} finally {\n" +
+        "  app.endUndoGroup();\n" +
+        "}\n" +
+        "return __r;\n"
+      );
+      return run(script, "set_motion_blur_settings");
     }
   );
 }

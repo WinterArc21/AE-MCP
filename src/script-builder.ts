@@ -35,11 +35,10 @@ export function wrapInUndoGroup(script: string, groupName: string): string {
     'app.beginUndoGroup("' + escapeString(groupName) + '");\n' +
     "try {\n" +
     script +
-    "\n} catch(e) {\n" +
+    "\n} finally {\n" +
     "  app.endUndoGroup();\n" +
-    "  throw e;\n" +
     "}\n" +
-    "app.endUndoGroup();\n"
+    ""
   );
 }
 

@@ -8,6 +8,8 @@
  *   - list_masks            List all masks on a layer with their properties
  *   - set_mask_properties   Update feather, opacity, expansion, mode, or inverted on a mask
  *   - set_track_matte       Set a layer's track matte type (Alpha, Luma, etc.)
+ *   - set_mask_path         Set custom Bézier path vertices on an existing mask
+ *   - delete_mask           Delete a mask from a layer by index
  *
  * All ExtendScript is ES3-compatible (var only, no arrow functions,
  * no template literals, string concatenation only).
@@ -378,6 +380,182 @@ export function registerMaskTools(server: McpServer): void {
 
       try {
         return runScript(script, "set_track_matte");
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+      }
+    }
+  );
+
+  // ─── set_mask_path ─────────────────────────────────────────────────────────────
+  server.tool(
+    "set_mask_path",
+    "Set custom Bézier path vertices on an existing mask. " +
+      "Vertices define path points, tangents control curves (relative to vertex). " +
+      "Use for custom reveal shapes, wipes, and animated mask paths. " +
+      "If time is provided, sets a keyframe at that time.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition"),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the layer"),
+      maskIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the mask (use list_masks to find it)"),
+      vertices: z
+        .array(z.array(z.number()).length(2))
+        .min(2)
+        .describe("Array of [x, y] vertex positions defining the path points"),
+      inTangents: z
+        .array(z.array(z.number()).length(2))
+        .optional()
+        .describe("Array of [x, y] incoming tangent handles relative to each vertex (default [0,0] for each)"),
+      outTangents: z
+        .array(z.array(z.number()).length(2))
+        .optional()
+        .describe("Array of [x, y] outgoing tangent handles relative to each vertex (default [0,0] for each)"),
+      closed: z
+        .boolean()
+        .optional()
+        .describe("Whether the path is closed (default true)"),
+      time: z
+        .number()
+        .optional()
+        .describe("If provided, sets a keyframe at this time in seconds instead of a static value"),
+    },
+    async ({ compId, layerIndex, maskIndex, vertices, inTangents, outTangents, closed, time }) => {
+      if (inTangents && inTangents.length !== vertices.length) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              success: false,
+              error: {
+                message: "inTangents length must match vertices length.",
+                code: "INVALID_PARAMS",
+              },
+            }),
+          }],
+          isError: true,
+        };
+      }
+      if (outTangents && outTangents.length !== vertices.length) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              success: false,
+              error: {
+                message: "outTangents length must match vertices length.",
+                code: "INVALID_PARAMS",
+              },
+            }),
+          }],
+          isError: true,
+        };
+      }
+
+      const closedVal = closed !== false ? "true" : "false";
+
+      // Build default tangent arrays if not provided
+      let inTangentsStr: string;
+      if (inTangents) {
+        inTangentsStr = "[" + inTangents.map(function (t) { return "[" + t.join(",") + "]"; }).join(",") + "]";
+      } else {
+        const zeros = [];
+        for (let i = 0; i < vertices.length; i++) { zeros.push("[0,0]"); }
+        inTangentsStr = "[" + zeros.join(",") + "]";
+      }
+
+      let outTangentsStr: string;
+      if (outTangents) {
+        outTangentsStr = "[" + outTangents.map(function (t) { return "[" + t.join(",") + "]"; }).join(",") + "]";
+      } else {
+        const zeros = [];
+        for (let i = 0; i < vertices.length; i++) { zeros.push("[0,0]"); }
+        outTangentsStr = "[" + zeros.join(",") + "]";
+      }
+
+      const verticesStr = "[" + vertices.map(function (v) { return "[" + v.join(",") + "]"; }).join(",") + "]";
+
+      let setLine: string;
+      if (time !== undefined) {
+        setLine = "_mask.property(\"Mask Path\").setValueAtTime(" + time + ", _shape);\n";
+      } else {
+        setLine = "_mask.property(\"Mask Path\").setValue(_shape);\n";
+      }
+
+      const body =
+        findCompById("comp", compId) +
+        findLayerByIndex("layer", "comp", layerIndex) +
+        "var _masks = layer.property(\"Masks\");\n" +
+        "if (" + maskIndex + " < 1 || " + maskIndex + " > _masks.numProperties) {\n" +
+        "  return { success: false, error: { message: \"Mask index " + maskIndex + " out of range — layer has \" + _masks.numProperties + \" masks.\", code: \"INVALID_PARAMS\" } };\n" +
+        "}\n" +
+        "var _mask = _masks.property(" + maskIndex + ");\n" +
+        "var _shape = new Shape();\n" +
+        "_shape.vertices = " + verticesStr + ";\n" +
+        "_shape.inTangents = " + inTangentsStr + ";\n" +
+        "_shape.outTangents = " + outTangentsStr + ";\n" +
+        "_shape.closed = " + closedVal + ";\n" +
+        setLine +
+        "return { success: true, data: { maskIndex: " + maskIndex + ", maskName: _mask.name, vertexCount: " + vertices.length + " } };\n";
+
+      const script = wrapWithReturn(wrapInUndoGroup(body, "set_mask_path"));
+
+      try {
+        return runScript(script, "set_mask_path");
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+      }
+    }
+  );
+
+  // ─── delete_mask ──────────────────────────────────────────────────────────────
+  server.tool(
+    "delete_mask",
+    "Delete a mask from a layer by index. Use list_masks to find mask indices.",
+    {
+      compId: z
+        .number()
+        .int()
+        .positive()
+        .describe("Numeric ID of the composition"),
+      layerIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the layer"),
+      maskIndex: z
+        .number()
+        .int()
+        .positive()
+        .describe("1-based index of the mask to delete (use list_masks to find it)"),
+    },
+    async ({ compId, layerIndex, maskIndex }) => {
+      const body =
+        findCompById("comp", compId) +
+        findLayerByIndex("layer", "comp", layerIndex) +
+        "var _masks = layer.property(\"Masks\");\n" +
+        "if (" + maskIndex + " < 1 || " + maskIndex + " > _masks.numProperties) {\n" +
+        "  return { success: false, error: { message: \"Mask index " + maskIndex + " out of range — layer has \" + _masks.numProperties + \" masks.\", code: \"INVALID_PARAMS\" } };\n" +
+        "}\n" +
+        "var _mask = _masks.property(" + maskIndex + ");\n" +
+        "var _maskName = _mask.name;\n" +
+        "_mask.remove();\n" +
+        "return { success: true, data: { deletedMaskIndex: " + maskIndex + ", deletedMaskName: _maskName } };\n";
+
+      const script = wrapWithReturn(wrapInUndoGroup(body, "delete_mask"));
+
+      try {
+        return runScript(script, "delete_mask");
       } catch (err) {
         return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
       }

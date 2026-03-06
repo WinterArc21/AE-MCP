@@ -33,6 +33,10 @@ import { registerShapeOperationTools } from "./tools/shape-operations.js";
 import { registerPrecompTools } from "./tools/precomp.js";
 import { registerMarkerTools } from "./tools/markers.js";
 import { registerLayerSettingsTools } from "./tools/layer-settings.js";
+import { registerPropertyTools } from "./tools/properties.js";
+import { registerTypographyTools } from "./tools/typography.js";
+import { registerShapePathTools } from "./tools/shape-paths.js";
+import { registerProjectItemTools } from "./tools/project-items.js";
 
 // Import bridge so the singleton is initialized (and stale files cleaned) at
 // startup, before the server begins accepting requests.
@@ -65,6 +69,10 @@ registerShapeOperationTools(server);
 registerPrecompTools(server);
 registerMarkerTools(server);
 registerLayerSettingsTools(server);
+registerPropertyTools(server);
+registerTypographyTools(server);
+registerShapePathTools(server);
+registerProjectItemTools(server);
 
 // ─── Startup diagnostics (stderr only — stdout is reserved for MCP) ───────────
 

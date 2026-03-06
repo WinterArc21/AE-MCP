@@ -1,17 +1,17 @@
-# ae-mcp — After Effects MCP Server
+﻿# ae-mcp â€” After Effects MCP Server
 
 AI-powered motion design automation for Adobe After Effects. Connect Claude, Cursor, or any MCP-compatible AI assistant directly to After Effects.
 
-**v2.0.0** — 75+ tools across 17 modules, agent knowledge base, and Cursor AI integration.
+**v2.0.0** - 118 tools across 21 modules, agent knowledge base, and Cursor AI integration.
 
 ## How it works
 
 ```
-┌─────────────┐    stdio     ┌─────────────┐   file bridge   ┌──────────────────┐
-│  AI Client   │◄───────────►│  MCP Server  │◄───────────────►│  After Effects   │
-│ (Claude, etc)│             │  (Node.js)   │  ~/Documents/   │  CEP Panel +     │
-└─────────────┘             └─────────────┘  ae-mcp-commands/ │  ExtendScript    │
-                                                               └──────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    stdio     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   file bridge   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  AI Client   â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–ºâ”‚  MCP Server  â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–ºâ”‚  After Effects   â”‚
+â”‚ (Claude, etc)â”‚             â”‚  (Node.js)   â”‚  ~/Documents/   â”‚  CEP Panel +     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜             â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  ae-mcp-commands/ â”‚  ExtendScript    â”‚
+                                                               â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 1. The AI sends tool calls via MCP (stdio transport)
@@ -80,172 +80,50 @@ Cursor users also benefit from the included `.cursorrules` file, which gives the
 
 Replace `/path/to/ae-mcp` with the actual path to this directory.
 
-## Available Tools (86 total)
+## Available Tools
 
-### Project Management (5 tools)
-| Tool | Description |
-|------|-------------|
-| `get_project_info` | Get current project metadata |
-| `create_project` | Create a new AE project |
-| `save_project` | Save the current project |
-| `open_project` | Open a project file |
-| `import_file` | Import a file (image, video, audio, AI) |
+`ae-mcp` currently ships **118 tools across 21 modules**.
 
-### Composition (6 tools)
-| Tool | Description |
-|------|-------------|
-| `create_composition` | Create a new composition |
-| `get_composition` | Get details about a composition |
-| `list_compositions` | List all compositions in the project |
-| `duplicate_composition` | Duplicate a composition |
-| `set_composition_settings` | Update comp settings (resolution, fps, duration, bg) |
-| `list_fonts` | Query installed fonts by family or PostScript name |
+For the full copy-paste API reference, see [TOOLS.md](C:\Users\ahmed\OneDrive\Stuff\Code Projects\AE-MCP\TOOLS.md).
 
-### Layer Management (14 tools)
-| Tool | Description |
-|------|-------------|
-| `add_solid_layer` | Add a solid-color layer |
-| `add_text_layer` | Add a text layer with full formatting |
-| `add_shape_layer` | Add a shape layer (rectangle, ellipse, polygon, star) |
-| `add_null_layer` | Add a null object (for parenting/expressions) |
-| `add_adjustment_layer` | Add an adjustment layer |
-| `add_comp_layer` | Add an existing composition as a layer (comp nesting) |
-| `list_layers` | List all layers in a composition |
-| `get_layer_info` | Get detailed properties of a specific layer |
-| `set_layer_properties` | Set layer properties (position, scale, opacity, etc.) |
-| `delete_layer` | Delete a layer by index |
-| `duplicate_layer` | Duplicate a layer |
-| `set_layer_parent` | Set a layer's parent (for hierarchical animation) |
-| `reorder_layer` | Move a layer to a different position in the stack |
-| `get_text_bounds` | Measure a layer's bounds in comp space |
+### Tool Modules
+- Project Management: 5 tools
+- Project Items & Assets: 9 tools
+- Composition: 8 tools
+- Layer Management: 13 tools
+- Typography: 3 tools
+- Animation & Keyframes: 8 tools
+- Generic Properties: 5 tools
+- Expressions: 5 tools
+- Motion Design Presets: 8 tools
+- Effects: 7 tools
+- Compositing: 3 tools
+- Masks: 5 tools
+- 3D: 7 tools
+- Text Animators: 4 tools
+- Shape Paths: 3 tools
+- Shape Operations: 8 tools
+- Pre-compositions: 2 tools
+- Markers: 2 tools
+- Layer Settings: 4 tools
+- Rendering & Preview: 8 tools
+- Scripting: 1 tool
 
-### Animation & Keyframes (7 tools)
-| Tool | Description |
-|------|-------------|
-| `add_keyframe` | Add a keyframe to any animatable property |
-| `add_keyframes_batch` | Add multiple keyframes at once |
-| `set_keyframe_easing` | Set easing on a specific keyframe |
-| `set_all_keyframes_easing` | Apply easing to all keyframes on a property |
-| `remove_keyframes` | Remove all keyframes from a property |
-| `set_time_remap` | Enable time remapping for speed ramps, freeze frames, reverse |
-| `set_spatial_interpolation` | Set linear or Bézier motion paths on Position keyframes |
-
-### Expressions (5 tools)
-| Tool | Description |
-|------|-------------|
-| `set_expression` | Set a custom expression on a property |
-| `remove_expression` | Remove an expression |
-| `add_wiggle` | Apply a wiggle expression |
-| `add_loop` | Apply a loopOut expression |
-| `link_properties` | Link a property to another property via expression |
-
-### Motion Design Presets (8 tools)
-| Tool | Description |
-|------|-------------|
-| `apply_fade_in` | Fade a layer in from transparent |
-| `apply_fade_out` | Fade a layer out to transparent |
-| `apply_slide_in` | Slide a layer in from off-screen (any direction) |
-| `apply_scale_in` | Scale a layer from 0% to 100% |
-| `apply_bounce_in` | Bounce-in effect with elastic easing |
-| `apply_typewriter` | Character-by-character text reveal |
-| `apply_color_theme` | Set consistent colors across layers |
-| `create_scene` | Create a full scene with background + title + subtitle |
-
-### Effects (7 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `apply_effect` | Add any After Effects effect to a layer by match name |
-| `set_effect_property` | Set a property value on an applied effect |
-| `get_effect_properties` | Get all properties of an applied effect |
-| `remove_effect` | Remove an effect from a layer |
-| `list_layer_effects` | List all effects on a layer |
-| `get_effect_docs` | Read bundled docs for a specific effect |
-| `list_available_effects` | List available effects by category and match name |
-
-### Compositing (3 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `set_blend_mode` | Set the blending mode on a layer |
-| `get_blend_mode` | Inspect the current blending mode on a layer |
-| `set_track_matte` | Configure track matte (alpha, luma) between layers |
-
-### Masks (3 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `add_mask` | Add a mask (rectangle or ellipse) to a layer |
-| `list_masks` | List all masks on a layer |
-| `set_mask_properties` | Set mask feather, opacity, expansion, and mode |
-
-### 3D (4 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `set_3d_layer` | Toggle a layer's 3D switch |
-| `add_camera` | Add a camera layer to the composition |
-| `add_light` | Add a light layer (ambient, spot, point, parallel) |
-| `set_3d_position` | Configure 3D layer position and rotation |
-
-### Text Animators (2 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `add_text_animator` | Add a text animator with range selector and properties |
-| `set_text_animator_values` | Update properties of an existing text animator |
-
-### Shape Operations (8 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `add_trim_paths` | Trim Paths for draw-on/draw-off line animation |
-| `add_repeater` | Repeater to clone and offset shape contents |
-| `add_wiggle_paths` | Wiggle Paths for organic/rough shape edges |
-| `add_merge_paths` | Merge Paths for boolean shape operations |
-| `add_offset_paths` | Offset Paths to expand or contract shape outlines |
-| `add_pucker_bloat` | Pucker & Bloat for organic shape distortion |
-| `add_zig_zag` | Zig Zag for wave/angular edge distortion |
-| `add_twist` | Twist for spiral shape distortion |
-
-### Pre-compositions (2 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `precompose_layers` | Pre-compose selected layers into a new composition |
-| `nest_composition` | Add an existing composition as a layer inside another composition |
-
-### Markers (2 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `add_marker` | Add a composition or layer marker at a specified time |
-| `list_markers` | List markers on a composition or layer |
-
-### Layer Settings (4 tools) — NEW
-| Tool | Description |
-|------|-------------|
-| `set_layer_quality` | Set render quality (best, draft, wireframe) |
-| `set_motion_blur` | Enable or disable motion blur on a layer |
-| `set_layer_timing` | Set layer in/out points, start time, and time stretch |
-| `set_layer_flags` | Set boolean flags (shy, solo, locked, guide, collapse, frame blend) |
-
-### Rendering & Preview (5 tools)
-| Tool | Description |
-|------|-------------|
-| `add_to_render_queue` | Add a composition to the render queue |
-| `get_render_status` | Check render queue status |
-| `start_render` | Start rendering |
-| `capture_frame` | Capture a single PNG frame from a composition |
-| `capture_frame_sequence` | Capture multiple evenly spaced PNG frames |
-
-### Scripting (1 tool)
-| Tool | Description |
-|------|-------------|
-| `run_extendscript` | Execute raw ExtendScript (escape hatch for advanced use) |
-
-> **Note:** Custom mask paths, shape group creation, and arbitrary Bézier path editing are not yet available as structured tools. Use `run_extendscript` for these operations.
+### Recommended Entry Points
+- Scene building: `create_composition`, `add_text_layer`, `add_shape_layer`, `create_scene`
+- Animation: `add_keyframe`, `add_keyframes_batch`, `set_all_keyframes_easing`, motion presets
+- Typography: `list_fonts`, `get_text_document`, `set_text_document`
+- Arbitrary AE access: `list_property_tree`, `get_property`, `set_property`, `set_property_keyframes`
+- Rendering: `add_to_render_queue`, `list_render_templates`, `capture_frame`, `start_render`
 
 ## Agent Knowledge Base
 
-The `docs/` folder is a structured knowledge base designed for AI agents. It provides reference material that agents can consult to produce higher-quality, more idiomatic After Effects output — without needing to guess at effect names, expression syntax, or design conventions.
+The `docs/` folder is a structured knowledge base designed for AI agents. It provides reference material that agents can consult to produce higher-quality, more idiomatic After Effects output â€” without needing to guess at effect names, expression syntax, or design conventions.
 
-### docs/effects/ — Effect References (41 files)
+### docs/effects/ â€” Effect References (41 files)
 Per-effect documentation covering match names, property names, value ranges, and usage notes for the most commonly used After Effects built-in effects. AI agents use these to call `apply_effect` and `set_effect_property` with correct parameters the first time.
 
-### docs/expressions/ — Expression Recipes (6 files)
+### docs/expressions/ â€” Expression Recipes (6 files)
 | File | Contents |
 |------|----------|
 | `README.md` | Overview of the expression system and how to apply recipes |
@@ -255,7 +133,7 @@ Per-effect documentation covering match names, property names, value ranges, and
 | `color.md` | Color expressions (HSL shifts, reactive color, gradients) |
 | `utility.md` | Utility expressions (index offsets, conditionals, math helpers) |
 
-### docs/templates/ — Scene Templates (6 files)
+### docs/templates/ â€” Scene Templates (6 files)
 | File | Contents |
 |------|----------|
 | `README.md` | How to instantiate and customize templates |
@@ -298,50 +176,55 @@ npm run typecheck
 
 ```
 ae-mcp/
-├── src/
-│   ├── index.ts
-│   ├── bridge.ts
-│   ├── script-builder.ts
-│   └── tools/
-│       ├── project.ts
-│       ├── composition.ts
-│       ├── layer.ts
-│       ├── animation.ts
-│       ├── expression.ts
-│       ├── motion-design.ts
-│       ├── render.ts
-│       ├── script.ts
-│       ├── effects.ts          # NEW
-│       ├── blend-modes.ts      # NEW
-│       ├── masks.ts            # NEW
-│       ├── three-d.ts          # NEW
-│       ├── text-animators.ts   # NEW
-│       ├── shape-operations.ts # NEW
-│       ├── precomp.ts          # NEW
-│       ├── markers.ts          # NEW
-│       └── layer-settings.ts   # NEW
-├── cep-extension/
-│   ├── CSXS/manifest.xml
-│   ├── .debug
-│   ├── index.html
-│   ├── js/CSInterface.js
-│   └── jsx/host.jsx
-├── docs/                       # NEW — Agent Knowledge Base
-│   ├── effects/                # 41 effect reference docs
-│   ├── expressions/            # Expression recipes
-│   ├── templates/              # Scene templates
-│   └── best-practices.md       # Design guidelines
-├── scripts/
-│   └── install-extension.js
-├── .cursorrules                # NEW — Cursor AI agent rules
-├── package.json
-├── tsconfig.json
-└── README.md
+|-- src/
+|   |-- index.ts
+|   |-- bridge.ts
+|   |-- script-builder.ts
+|   `-- tools/
+|       |-- project.ts
+|       |-- composition.ts
+|       |-- layer.ts
+|       |-- animation.ts
+|       |-- expression.ts
+|       |-- motion-design.ts
+|       |-- render.ts
+|       |-- script.ts
+|       |-- effects.ts
+|       |-- blend-modes.ts
+|       |-- masks.ts
+|       |-- three-d.ts
+|       |-- text-animators.ts
+|       |-- shape-operations.ts
+|       |-- precomp.ts
+|       |-- markers.ts
+|       |-- layer-settings.ts
+|       |-- properties.ts
+|       |-- typography.ts
+|       |-- shape-paths.ts
+|       `-- project-items.ts
+|-- cep-extension/
+|   |-- CSXS/manifest.xml
+|   |-- .debug
+|   |-- index.html
+|   |-- js/CSInterface.js
+|   `-- jsx/host.jsx
+|-- docs/
+|   |-- effects/
+|   |-- expressions/
+|   |-- templates/
+|   `-- best-practices.md
+|-- scripts/
+|   |-- install-extension.js
+|   `-- check-readme-tools.js
+|-- .cursorrules
+|-- package.json
+|-- tsconfig.json
+`-- README.md
 ```
 
 ## Troubleshooting
 
-### "Tool timed out — is the AE MCP Bridge panel open?"
+### "Tool timed out â€” is the AE MCP Bridge panel open?"
 - Make sure After Effects is running
 - Open the panel: **Window > Extensions > AE MCP Bridge**
 - The panel should show "Waiting for commands..."
@@ -365,3 +248,6 @@ Bridge architecture inspired by [p10q/ae-mcp](https://github.com/p10q/ae-mcp). E
 ## License
 
 MIT
+
+
+
