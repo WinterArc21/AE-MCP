@@ -7,7 +7,7 @@
  * commands to the AE MCP Bridge CEP panel running inside After Effects.
  *
  * Transport: stdio (standard for MCP)
- * Bridge:    ~/Documents/ae-mcp-commands/ (JSON command files)
+ * Bridge:    commands folder (default ~/Documents/ae-mcp-commands/, override via AE_MCP_COMMANDS_DIR)
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

@@ -3,8 +3,39 @@ import * as path from "path";
 import * as os from "os";
 
 const COMMANDS_DIR_NAME = "ae-mcp-commands";
+const CONFIG_FILE_NAME = "ae-mcp-commands-dir.txt";
 const POLL_INTERVAL = 100;
 const COMMAND_TIMEOUT = 60000;
+
+function getConfigFilePath(): string {
+  return path.join(os.homedir(), "Documents", CONFIG_FILE_NAME);
+}
+
+function resolveCommandsDir(): string {
+  // 1. Primary: AE_MCP_COMMANDS_DIR (explicit user override)
+  const envOverride = process.env.AE_MCP_COMMANDS_DIR;
+  if (envOverride && envOverride.trim().length > 0) {
+    const resolved = path.resolve(envOverride.trim());
+    try {
+      fs.writeFileSync(getConfigFilePath(), resolved, "utf-8");
+    } catch {
+      /* ignore — config write is best-effort for CEP sync */
+    }
+    return resolved;
+  }
+  // 2. Fallback: config file (so CEP panel can share the same override)
+  try {
+    const configPath = getConfigFilePath();
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, "utf-8").trim();
+      if (content.length > 0) return path.resolve(content);
+    }
+  } catch {
+    /* ignore */
+  }
+  // 3. Default: platform Documents folder
+  return path.join(os.homedir(), "Documents", COMMANDS_DIR_NAME);
+}
 
 interface PendingCommand {
   resolve: (value: unknown) => void;
@@ -37,7 +68,7 @@ export class AEBridge {
   private _isShuttingDown = false;
 
   constructor() {
-    this._commandsDir = path.join(os.homedir(), "OneDrive", "Documents", COMMANDS_DIR_NAME);
+    this._commandsDir = resolveCommandsDir();
     this._clientPrefix = `aemcp_${process.pid}_${Date.now().toString(36)}`;
     this.ensureCommandsDir();
     this.cleanStaleFiles();

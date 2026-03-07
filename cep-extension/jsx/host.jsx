@@ -172,8 +172,36 @@
 /** Name of the commands directory (inside user's Documents folder). */
 var COMMANDS_FOLDER_NAME = "ae-mcp-commands";
 
+/** Config file in Documents that overrides the commands path (synced from AE_MCP_COMMANDS_DIR). */
+var COMMANDS_DIR_CONFIG_FILE = "ae-mcp-commands-dir.txt";
+
 /** Cached Folder reference, created by initBridge(). */
 var commandsFolder = null;
+
+/**
+ * Resolves the commands folder path. Same strategy as the MCP server:
+ * 1. Primary: AE_MCP_COMMANDS_DIR override (via config file written by Node when env is set)
+ * 2. Fallback: Documents/ae-mcp-commands
+ */
+function getCommandsFolderPath() {
+    var configPath = Folder.myDocuments.fsName + "/" + COMMANDS_DIR_CONFIG_FILE;
+    var configFile = new File(configPath);
+    if (configFile.exists) {
+        try {
+            configFile.encoding = "UTF-8";
+            if (configFile.open("r")) {
+                var content = configFile.read();
+                configFile.close();
+                if (content && (content = content.replace(/^\s+|\s+$/g, "")).length > 0) {
+                    return content;
+                }
+            }
+        } catch (configErr) {
+            /* fall through to default */
+        }
+    }
+    return Folder.myDocuments.fsName + "/" + COMMANDS_FOLDER_NAME;
+}
 
 /**
  * In-memory set of file names that have already been dispatched in this
@@ -193,8 +221,8 @@ var BRIDGE_VERSION = "1.0.0";
 // ---------------------------------------------------------------------------
 function initBridge() {
     try {
-        var docsPath = Folder.myDocuments.fsName + "/" + COMMANDS_FOLDER_NAME;
-        commandsFolder = new Folder(docsPath);
+        var commandsPath = getCommandsFolderPath();
+        commandsFolder = new Folder(commandsPath);
 
         if (!commandsFolder.exists) {
             commandsFolder.create();
@@ -242,8 +270,8 @@ function processCommands() {
     // Ensure the bridge has been initialised; recover gracefully if not.
     if (!commandsFolder || !commandsFolder.exists) {
         try {
-            var docsPath = Folder.myDocuments.fsName + "/" + COMMANDS_FOLDER_NAME;
-            commandsFolder = new Folder(docsPath);
+            var commandsPath = getCommandsFolderPath();
+            commandsFolder = new Folder(commandsPath);
             if (!commandsFolder.exists) {
                 commandsFolder.create();
             }

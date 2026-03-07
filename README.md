@@ -9,8 +9,8 @@ AI-powered motion design automation for Adobe After Effects. Connect Claude, Cur
 ```
 ┌─────────────┐    stdio     ┌─────────────┐   file bridge   ┌──────────────────┐
 │  AI Client   │◄───────────►│  MCP Server  │◄───────────────►│  After Effects   │
-│ (Claude, etc)│             │  (Node.js)   │  ~/Documents/   │  CEP Panel +     │
-└─────────────┘             └─────────────┘  ae-mcp-commands/ │  ExtendScript    │
+│ (Claude, etc)│             │  (Node.js)   │  commands dir   │  CEP Panel +     │
+└─────────────┘             └─────────────┘  (see README)     │  ExtendScript    │
                                                                └──────────────────┘
 ```
 
@@ -148,7 +148,13 @@ Comprehensive design guidelines covering timing, easing curves, typography, colo
 
 ## File Bridge Protocol
 
-The MCP server and CEP panel communicate through JSON files in `~/Documents/ae-mcp-commands/`:
+The MCP server and CEP panel communicate through JSON files in a shared commands folder.
+
+### Commands folder location
+
+- **Default**: The user Documents folder (`~/Documents/ae-mcp-commands/` on macOS/Linux, `%USERPROFILE%\Documents\ae-mcp-commands\` on Windows).
+- **Recommended override**: Set the `AE_MCP_COMMANDS_DIR` environment variable to use a custom folder. Both the MCP server and CEP panel read the same override, so they stay in sync.
+- When you set `AE_MCP_COMMANDS_DIR` and start the MCP server, it writes the path to `~/Documents/ae-mcp-commands-dir.txt` so the CEP panel (which cannot read env vars) can use it. You can also create this file manually to override the path.
 
 ```
 Command flow:
