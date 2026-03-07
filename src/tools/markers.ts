@@ -131,68 +131,52 @@ export function registerMarkerTools(server: McpServer): void {
       }
     }
   );
+}
 
-  // ─── list_markers ────────────────────────────────────────────────────────────
-  server.tool(
-    "list_markers",
-    "List all markers on a layer or on the composition's marker track. " +
-      "Returns each marker's time (in seconds), comment text, duration, and label index. " +
-      "If layerIndex is provided, returns that layer's markers. " +
-      "If layerIndex is omitted, returns the composition-level markers. " +
-      "Returns an empty array if no markers are present. " +
-      "Useful for inspecting existing markers before adding new ones, " +
-      "or for reading cue point data from a comp.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("1-based index of the layer to list markers for. If omitted, lists composition-level markers"),
-    },
-    async ({ compId, layerIndex }) => {
-      const markerLoop =
-        "var _markers = [];\n" +
-        "for (var _mk = 1; _mk <= _markerProp.numKeys; _mk++) {\n" +
-        "  var _mval = _markerProp.keyValue(_mk);\n" +
-        "  _markers.push({\n" +
-        "    index: _mk,\n" +
-        "    time: _markerProp.keyTime(_mk),\n" +
-        "    comment: _mval.comment,\n" +
-        "    duration: _mval.duration,\n" +
-        "    label: _mval.label\n" +
-        "  });\n" +
-        "}\n";
+// ---------------------------------------------------------------------------
+// Demoted helpers (formerly server.tool registrations)
+// ---------------------------------------------------------------------------
 
-      let body: string;
+export async function listMarkersHelper(params: {
+  compId: number;
+  layerIndex?: number;
+}) {
+  const { compId, layerIndex } = params;
+  const markerLoop =
+    "var _markers = [];\n" +
+    "for (var _mk = 1; _mk <= _markerProp.numKeys; _mk++) {\n" +
+    "  var _mval = _markerProp.keyValue(_mk);\n" +
+    "  _markers.push({\n" +
+    "    index: _mk,\n" +
+    "    time: _markerProp.keyTime(_mk),\n" +
+    "    comment: _mval.comment,\n" +
+    "    duration: _mval.duration,\n" +
+    "    label: _mval.label\n" +
+    "  });\n" +
+    "}\n";
 
-      if (layerIndex !== undefined) {
-        body =
-          findCompById("comp", compId) +
-          findLayerByIndex("layer", "comp", layerIndex) +
-          "var _markerProp = layer.property(\"Marker\");\n" +
-          markerLoop +
-          "return { success: true, data: { target: \"layer\", layerIndex: " + layerIndex + ", layerName: layer.name, markers: _markers, count: _markers.length } };\n";
-      } else {
-        body =
-          findCompById("comp", compId) +
-          "var _markerProp = comp.markerProperty;\n" +
-          markerLoop +
-          "return { success: true, data: { target: \"composition\", compId: " + compId + ", markers: _markers, count: _markers.length } };\n";
-      }
+  let body: string;
 
-      const script = wrapWithReturn(body);
+  if (layerIndex !== undefined) {
+    body =
+      findCompById("comp", compId) +
+      findLayerByIndex("layer", "comp", layerIndex) +
+      "var _markerProp = layer.property(\"Marker\");\n" +
+      markerLoop +
+      "return { success: true, data: { target: \"layer\", layerIndex: " + layerIndex + ", layerName: layer.name, markers: _markers, count: _markers.length } };\n";
+  } else {
+    body =
+      findCompById("comp", compId) +
+      "var _markerProp = comp.markerProperty;\n" +
+      markerLoop +
+      "return { success: true, data: { target: \"composition\", compId: " + compId + ", markers: _markers, count: _markers.length } };\n";
+  }
 
-      try {
-        return runScript(script, "list_markers");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  const script = wrapWithReturn(body);
+
+  try {
+    return runScript(script, "list_markers");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
 }

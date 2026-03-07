@@ -6,9 +6,11 @@
  * Registers:
  *   - set_expression      Apply an arbitrary expression string to a property
  *   - remove_expression   Clear the expression from a property
- *   - add_wiggle          Apply wiggle(freq, amp) to a property
- *   - add_loop            Apply loopOut() to a property (requires ≥2 keyframes)
- *   - link_properties     Link a target property to a source layer's transform via expression
+ *
+ * Helpers (exported for compound tools):
+ *   - addWiggleHelper
+ *   - addLoopHelper
+ *   - linkPropertiesHelper
  *
  * Note: AE expressions use modern JS (expression engine), not ExtendScript.
  * The ExtendScript that SETS them must still be ES3.
@@ -57,6 +59,117 @@ function resolveProp(layerVar: string, propertyName: string): string {
     '  return { success: false, error: { message: "Property not found: ' + esc + '", code: "PROP_NOT_FOUND" } };\n' +
     "}\n"
   );
+}
+
+// ---------------------------------------------------------------------------
+// Exported helper functions (demoted from server.tool registrations)
+// ---------------------------------------------------------------------------
+
+export async function addWiggleHelper(params: {
+  compId: number;
+  layerIndex: number;
+  property: string;
+  frequency?: number | undefined;
+  amplitude?: number | undefined;
+}) {
+  const { compId, layerIndex, property } = params;
+  const frequency = params.frequency ?? 3;
+  const amplitude = params.amplitude ?? 50;
+  const expr = "wiggle(" + frequency + ", " + amplitude + ")";
+
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    resolveProp("layer", property) +
+    '_prop.expression = "' + escapeString(expr) + '";\n' +
+    "return { success: true, data: { property: " + JSON.stringify(property) + ", expression: " + JSON.stringify(expr) + " } };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "add_wiggle"));
+
+  try {
+    return runScript(script, "add_wiggle");
+  } catch (err) {
+    return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function addLoopHelper(params: {
+  compId: number;
+  layerIndex: number;
+  property: string;
+  loopType: "cycle" | "pingpong" | "offset" | "continue";
+  numKeyframes?: number | undefined;
+}) {
+  const { compId, layerIndex, property, loopType, numKeyframes } = params;
+  const expr =
+    numKeyframes !== undefined
+      ? 'loopOut("' + loopType + '", ' + numKeyframes + ")"
+      : 'loopOut("' + loopType + '")';
+
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    resolveProp("layer", property) +
+    "if (_prop.numKeys < 2) {\n" +
+    '  return { success: false, error: { message: "loopOut requires at least 2 keyframes. Property \\"' + escapeString(property) + '\\" has " + _prop.numKeys + " keyframe(s).", code: "INVALID_PARAMS" } };\n' +
+    "}\n" +
+    '_prop.expression = "' + escapeString(expr) + '";\n' +
+    "return { success: true, data: { property: " + JSON.stringify(property) + ", expression: " + JSON.stringify(expr) + " } };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "add_loop"));
+
+  try {
+    return runScript(script, "add_loop");
+  } catch (err) {
+    return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function linkPropertiesHelper(params: {
+  compId: number;
+  sourceLayerIndex: number;
+  sourceProperty: "Position" | "Scale" | "Rotation" | "Opacity" | "Anchor Point";
+  targetLayerIndex: number;
+  targetProperty: string;
+}) {
+  const { compId, sourceLayerIndex, sourceProperty, targetLayerIndex, targetProperty } = params;
+  // Map display property name to AE expression object accessor (camelCase)
+  const propAccessorMap: Record<string, string> = {
+    Position:       "position",
+    Scale:          "scale",
+    Rotation:       "rotation",
+    Opacity:        "opacity",
+    "Anchor Point": "anchorPoint",
+  };
+  const accessor = propAccessorMap[sourceProperty] ?? "position";
+
+  // Expression referencing the source layer's transform property
+  const expr = "thisComp.layer(" + sourceLayerIndex + ").transform." + accessor;
+
+  const body =
+    findCompById("comp", compId) +
+    // Validate source layer exists
+    findLayerByIndex("_srcLayer", "comp", sourceLayerIndex) +
+    // Validate target layer exists
+    findLayerByIndex("layer", "comp", targetLayerIndex) +
+    // Resolve target property
+    resolveProp("layer", targetProperty) +
+    '_prop.expression = "' + escapeString(expr) + '";\n' +
+    "return { success: true, data: {\n" +
+    "  sourceLayer: " + sourceLayerIndex + ",\n" +
+    "  sourceProperty: " + JSON.stringify(sourceProperty) + ",\n" +
+    "  targetLayer: " + targetLayerIndex + ",\n" +
+    "  targetProperty: " + JSON.stringify(targetProperty) + ",\n" +
+    "  expression: " + JSON.stringify(expr) + "\n" +
+    "} };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "link_properties"));
+
+  try {
+    return runScript(script, "link_properties");
+  } catch (err) {
+    return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -142,190 +255,6 @@ export function registerExpressionTools(server: McpServer): void {
 
       try {
         return runScript(script, "remove_expression");
-      } catch (err) {
-        return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
-
-  // ─── add_wiggle ───────────────────────────────────────────────────────────────
-  server.tool(
-    "add_wiggle",
-    "Apply a wiggle expression to a layer property to create organic random motion. " +
-      "Frequency controls oscillations per second (higher = more jitter). " +
-      "Amplitude controls the maximum deviation (units match the property: pixels for Position, " +
-      "degrees for Rotation, 0-100 for Opacity). " +
-      "Examples: wiggle(1, 30) = slow, large drift; wiggle(10, 5) = fast, subtle vibration. " +
-      "Best on: Position (floating/shaking), Rotation (wobble), Opacity (flicker), Scale (breathing).",
-    {
-      compId: z.number().int().positive().describe("Numeric ID of the composition"),
-      layerIndex: z.number().int().positive().describe("1-based layer index"),
-      property: z
-        .string()
-        .min(1)
-        .describe("Property to apply wiggle to (e.g. 'Position', 'Rotation', 'Opacity', 'Scale')"),
-      frequency: z
-        .number()
-        .positive()
-        .default(3)
-        .describe(
-          "Oscillations per second (default 3). Range: 0.5 (very slow) to 15 (very fast vibration)."
-        ),
-      amplitude: z
-        .number()
-        .positive()
-        .default(50)
-        .describe(
-          "Maximum deviation from base value (default 50). " +
-            "Units match the property: pixels for Position, degrees for Rotation, percent for Opacity."
-        ),
-    },
-    async ({ compId, layerIndex, property, frequency, amplitude }) => {
-      const expr = "wiggle(" + frequency + ", " + amplitude + ")";
-
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        resolveProp("layer", property) +
-        '_prop.expression = "' + escapeString(expr) + '";\n' +
-        "return { success: true, data: { property: " + JSON.stringify(property) + ", expression: " + JSON.stringify(expr) + " } };\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "add_wiggle"));
-
-      try {
-        return runScript(script, "add_wiggle");
-      } catch (err) {
-        return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
-
-  // ─── add_loop ─────────────────────────────────────────────────────────────────
-  server.tool(
-    "add_loop",
-    "Apply a loopOut() expression to a property so it repeats after the last keyframe. " +
-      "The property MUST have at least 2 keyframes set before calling this tool. " +
-      "Loop types: " +
-      "'cycle' = repeats the segment forward (spinning logo, bouncing ball); " +
-      "'pingpong' = alternates forward/backward (breathing scale, pendulum swing); " +
-      "'offset' = repeats but adds cumulative delta each cycle (endless scroll, counter); " +
-      "'continue' = extrapolates the last velocity infinitely (object flying off screen). " +
-      "numKeyframes optionally limits the loop to the last N keyframes.",
-    {
-      compId: z.number().int().positive().describe("Numeric ID of the composition"),
-      layerIndex: z.number().int().positive().describe("1-based layer index"),
-      property: z
-        .string()
-        .min(1)
-        .describe("Property to loop — must already have at least 2 keyframes"),
-      loopType: z
-        .enum(["cycle", "pingpong", "offset", "continue"])
-        .describe(
-          "'cycle' = forward repeat; 'pingpong' = forward+backward; " +
-            "'offset' = additive repeat; 'continue' = extrapolate velocity"
-        ),
-      numKeyframes: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe(
-          "Number of trailing keyframes to include in the loop segment (optional). " +
-            "Omit to loop all keyframes."
-        ),
-    },
-    async ({ compId, layerIndex, property, loopType, numKeyframes }) => {
-      const expr =
-        numKeyframes !== undefined
-          ? 'loopOut("' + loopType + '", ' + numKeyframes + ")"
-          : 'loopOut("' + loopType + '")';
-
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        resolveProp("layer", property) +
-        "if (_prop.numKeys < 2) {\n" +
-        '  return { success: false, error: { message: "loopOut requires at least 2 keyframes. Property \\"' + escapeString(property) + '\\" has " + _prop.numKeys + " keyframe(s).", code: "INVALID_PARAMS" } };\n' +
-        "}\n" +
-        '_prop.expression = "' + escapeString(expr) + '";\n' +
-        "return { success: true, data: { property: " + JSON.stringify(property) + ", expression: " + JSON.stringify(expr) + " } };\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "add_loop"));
-
-      try {
-        return runScript(script, "add_loop");
-      } catch (err) {
-        return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
-
-  // ─── link_properties ─────────────────────────────────────────────────────────────
-  server.tool(
-    "link_properties",
-    "Link a target layer property to a source layer's transform property via an expression. " +
-      "The target property will mirror the source value at all times. " +
-      "The expression is set on the TARGET layer/property — the source layer is unchanged. " +
-      "Use cases: sync positions between layers without parenting, " +
-      "drive multiple layers from a single controller null, " +
-      "create secondary animation that follows a primary. " +
-      "Source must be a Transform property. " +
-      "For non-Transform sources, use set_expression with a custom expression string.",
-    {
-      compId: z.number().int().positive().describe("Numeric ID of the composition"),
-      sourceLayerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the source (driver) layer whose value will be READ"),
-      sourceProperty: z
-        .enum(["Position", "Scale", "Rotation", "Opacity", "Anchor Point"])
-        .describe("Transform property on the source layer to read"),
-      targetLayerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the target (follower) layer that will receive the expression"),
-      targetProperty: z
-        .string()
-        .min(1)
-        .describe("Property name on the target layer that will be driven"),
-    },
-    async ({ compId, sourceLayerIndex, sourceProperty, targetLayerIndex, targetProperty }) => {
-      // Map display property name to AE expression object accessor (camelCase)
-      const propAccessorMap: Record<string, string> = {
-        Position:       "position",
-        Scale:          "scale",
-        Rotation:       "rotation",
-        Opacity:        "opacity",
-        "Anchor Point": "anchorPoint",
-      };
-      const accessor = propAccessorMap[sourceProperty] ?? "position";
-
-      // Expression referencing the source layer's transform property
-      const expr = "thisComp.layer(" + sourceLayerIndex + ").transform." + accessor;
-
-      const body =
-        findCompById("comp", compId) +
-        // Validate source layer exists
-        findLayerByIndex("_srcLayer", "comp", sourceLayerIndex) +
-        // Validate target layer exists
-        findLayerByIndex("layer", "comp", targetLayerIndex) +
-        // Resolve target property
-        resolveProp("layer", targetProperty) +
-        '_prop.expression = "' + escapeString(expr) + '";\n' +
-        "return { success: true, data: {\n" +
-        "  sourceLayer: " + sourceLayerIndex + ",\n" +
-        "  sourceProperty: " + JSON.stringify(sourceProperty) + ",\n" +
-        "  targetLayer: " + targetLayerIndex + ",\n" +
-        "  targetProperty: " + JSON.stringify(targetProperty) + ",\n" +
-        "  expression: " + JSON.stringify(expr) + "\n" +
-        "} };\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "link_properties"));
-
-      try {
-        return runScript(script, "link_properties");
       } catch (err) {
         return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
       }

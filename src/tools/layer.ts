@@ -1020,296 +1020,184 @@ export function registerLayerTools(server: McpServer): void {
     }
   );
 
-  // ── set_layer_parent ───────────────────────────────────────────────────────
+}
 
-  server.tool(
-    "set_layer_parent",
-    "Sets or removes the parent of a layer. " +
-      "When a parent is assigned, the child's transform properties become " +
-      "relative to the parent, enabling hierarchical animation rigs. " +
-      "Pass parentIndex as null to remove an existing parent. " +
-      "Both indices are 1-based. A layer cannot be its own parent.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric id of the composition."),
-      childIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the child layer."),
-      parentIndex: z
-        .number()
-        .int()
-        .positive()
-        .nullable()
-        .describe(
-          "1-based index of the parent layer, or null to remove the parent."
-        ),
-    },
-    async ({ compId, childIndex, parentIndex }) => {
-      let parentBlock: string;
-      if (parentIndex === null || parentIndex === undefined) {
-        parentBlock = "  childLayer.parent = null;\n";
-      } else {
-        parentBlock =
-          "  " +
-          getLayer("comp", String(parentIndex), "parentLayer")
-            .split("\n")
-            .join("\n  ") +
-          "  if (childLayer.index === parentLayer.index) {\n" +
-          '    throw new Error("A layer cannot be its own parent.");\n' +
-          "  }\n" +
-          "  childLayer.parent = parentLayer;\n";
-      }
+// ---------------------------------------------------------------------------
+// Demoted helpers (no longer registered as MCP tools)
+// ---------------------------------------------------------------------------
 
-      const script = wrapWithReturn(
-        'app.beginUndoGroup("set_layer_parent");\n' +
-          "var __r;\n" +
-          "try {\n" +
-          "  " +
-          findCompById("comp", compId).split("\n").join("\n  ") +
-          "  " +
-          getLayer("comp", String(childIndex), "childLayer")
-            .split("\n")
-            .join("\n  ") +
-          parentBlock +
-          "  var newParentIdx = (childLayer.parent ? childLayer.parent.index : null);\n" +
-          "  var newParentName = (childLayer.parent ? childLayer.parent.name : null);\n" +
-          "  __r = {\n" +
-          "    success: true,\n" +
-          "    data: {\n" +
-          "      childIndex: childLayer.index,\n" +
-          "      childName: childLayer.name,\n" +
-          "      parentIndex: newParentIdx,\n" +
-          "      parentName: newParentName\n" +
-          "    }\n" +
-          "  };\n" +
-          "} finally {\n" +
-          "  app.endUndoGroup();\n" +
-          "}\n" +
-          "return __r;\n"
-      );
-      return run(script, "set_layer_parent");
-    }
+export async function setLayerParentHelper(params: { compId: number; childIndex: number; parentIndex: number | null }) {
+  const { compId, childIndex, parentIndex } = params;
+  let parentBlock: string;
+  if (parentIndex === null || parentIndex === undefined) {
+    parentBlock = "  childLayer.parent = null;\n";
+  } else {
+    parentBlock =
+      "  " +
+      getLayer("comp", String(parentIndex), "parentLayer")
+        .split("\n")
+        .join("\n  ") +
+      "  if (childLayer.index === parentLayer.index) {\n" +
+      '    throw new Error("A layer cannot be its own parent.");\n' +
+      "  }\n" +
+      "  childLayer.parent = parentLayer;\n";
+  }
+
+  const script = wrapWithReturn(
+    'app.beginUndoGroup("set_layer_parent");\n' +
+      "var __r;\n" +
+      "try {\n" +
+      "  " +
+      findCompById("comp", compId).split("\n").join("\n  ") +
+      "  " +
+      getLayer("comp", String(childIndex), "childLayer")
+        .split("\n")
+        .join("\n  ") +
+      parentBlock +
+      "  var newParentIdx = (childLayer.parent ? childLayer.parent.index : null);\n" +
+      "  var newParentName = (childLayer.parent ? childLayer.parent.name : null);\n" +
+      "  __r = {\n" +
+      "    success: true,\n" +
+      "    data: {\n" +
+      "      childIndex: childLayer.index,\n" +
+      "      childName: childLayer.name,\n" +
+      "      parentIndex: newParentIdx,\n" +
+      "      parentName: newParentName\n" +
+      "    }\n" +
+      "  };\n" +
+      "} finally {\n" +
+      "  app.endUndoGroup();\n" +
+      "}\n" +
+      "return __r;\n"
   );
+  return run(script, "set_layer_parent");
+}
 
-  // ── reorder_layer ──────────────────────────────────────────────────────────
-
-  server.tool(
-    "reorder_layer",
-    "Moves a layer to a new position in the stacking order of a composition. " +
-      "Index 1 is the topmost layer (rendered on top of all others). " +
-      "newIndex is clamped to [1, numLayers]. " +
-      "Returns the layer name and its actual new index after the move.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric id of the composition."),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("Current 1-based index of the layer to move."),
-      newIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe(
-          "Target 1-based index. 1 = move to top, comp.numLayers = move to bottom."
-        ),
-    },
-    async ({ compId, layerIndex, newIndex }) => {
-      const script = wrapWithReturn(
-        'app.beginUndoGroup("reorder_layer");\n' +
-          "var __r;\n" +
-          "try {\n" +
-          "  " +
-          findCompById("comp", compId).split("\n").join("\n  ") +
-          "  " +
-          getLayer("comp", String(layerIndex), "layer")
-            .split("\n")
-            .join("\n  ") +
-          "  var target = " +
-          newIndex +
-          ";\n" +
-          "  if (target < 1) { target = 1; }\n" +
-          "  if (target > comp.numLayers) { target = comp.numLayers; }\n" +
-          "  layer.moveToBeginning();\n" +
-          "  for (var mi = 1; mi < target; mi++) {\n" +
-          "    var nextIdx = (mi + 1 <= comp.numLayers ? mi + 1 : comp.numLayers);\n" +
-          "    var nextLayer = comp.layer(nextIdx);\n" +
-          "    if (nextLayer.index !== layer.index) { layer.moveAfter(nextLayer); }\n" +
-          "  }\n" +
-          "  __r = { success: true, data: { name: layer.name, newIndex: layer.index } };\n" +
-          "} finally {\n" +
-          "  app.endUndoGroup();\n" +
-          "}\n" +
-          "return __r;\n"
-      );
-      return run(script, "reorder_layer");
-    }
+export async function reorderLayerHelper(params: { compId: number; layerIndex: number; newIndex: number }) {
+  const { compId, layerIndex, newIndex } = params;
+  const script = wrapWithReturn(
+    'app.beginUndoGroup("reorder_layer");\n' +
+      "var __r;\n" +
+      "try {\n" +
+      "  " +
+      findCompById("comp", compId).split("\n").join("\n  ") +
+      "  " +
+      getLayer("comp", String(layerIndex), "layer")
+        .split("\n")
+        .join("\n  ") +
+      "  var target = " +
+      newIndex +
+      ";\n" +
+      "  if (target < 1) { target = 1; }\n" +
+      "  if (target > comp.numLayers) { target = comp.numLayers; }\n" +
+      "  layer.moveToBeginning();\n" +
+      "  for (var mi = 1; mi < target; mi++) {\n" +
+      "    var nextIdx = (mi + 1 <= comp.numLayers ? mi + 1 : comp.numLayers);\n" +
+      "    var nextLayer = comp.layer(nextIdx);\n" +
+      "    if (nextLayer.index !== layer.index) { layer.moveAfter(nextLayer); }\n" +
+      "  }\n" +
+      "  __r = { success: true, data: { name: layer.name, newIndex: layer.index } };\n" +
+      "} finally {\n" +
+      "  app.endUndoGroup();\n" +
+      "}\n" +
+      "return __r;\n"
   );
+  return run(script, "reorder_layer");
+}
 
-  // ── add_comp_layer ──────────────────────────────────────────────────────
+export async function addCompLayerHelper(params: {
+  compId: number;
+  sourceCompId: number;
+  name?: string | undefined;
+  position?: number[] | undefined;
+  startTime?: number | undefined;
+}) {
+  const { compId, sourceCompId, name, position, startTime } = params;
+  if (compId === sourceCompId) {
+    return {
+      content: [{ type: "text" as const, text: "Error: compId and sourceCompId must be different — a composition cannot be nested inside itself." }],
+      isError: true,
+    };
+  }
 
-  server.tool(
-    "add_comp_layer",
-    "Adds an existing composition as a layer inside another composition (comp nesting). " +
-      "This is essential for modular scene building — create sub-scenes as separate comps, " +
-      "then assemble them into a master comp. " +
-      "The nested comp behaves like a footage layer: it has its own timeline, and changes to the " +
-      "source comp are reflected everywhere it is used. " +
-      "sourceCompId is the composition to nest (the one that will appear as a layer). " +
-      "compId is the target composition (the one that receives the new layer). " +
-      "The two must be different compositions — self-nesting is not allowed. " +
-      "Returns the new layer's index, name, and basic properties.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the target composition (where the layer will be added)"),
-      sourceCompId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition to nest as a layer"),
-      name: z
-        .string()
-        .optional()
-        .describe("Override layer name. If omitted, uses the source comp's name"),
-      position: z
-        .array(z.number())
-        .length(2)
-        .optional()
-        .describe("Position [x, y] in pixels from the comp top-left. Omit for comp center"),
-      startTime: z
-        .number()
-        .optional()
-        .describe("Layer start time in seconds. Default is 0"),
-    },
-    async ({ compId, sourceCompId, name, position, startTime }) => {
-      if (compId === sourceCompId) {
-        return {
-          content: [{ type: "text" as const, text: "Error: compId and sourceCompId must be different — a composition cannot be nested inside itself." }],
-          isError: true,
-        };
-      }
+  let extras = "";
+  if (name !== undefined) {
+    extras += '  newLayer.name = "' + escapeString(name) + '";\n';
+  }
+  if (position !== undefined) {
+    extras +=
+      '  newLayer.property("Transform").property("Position").setValue([' +
+      position[0] + ", " + position[1] + "]);\n";
+  }
+  if (startTime !== undefined) {
+    extras += "  newLayer.startTime = " + startTime + ";\n";
+  }
 
-      let extras = "";
-      if (name !== undefined) {
-        extras += '  newLayer.name = "' + escapeString(name) + '";\n';
-      }
-      if (position !== undefined) {
-        extras +=
-          '  newLayer.property("Transform").property("Position").setValue([' +
-          position[0] + ", " + position[1] + "]);\n";
-      }
-      if (startTime !== undefined) {
-        extras += "  newLayer.startTime = " + startTime + ";\n";
-      }
-
-      const script = wrapWithReturn(
-        'app.beginUndoGroup("add_comp_layer");\n' +
-          "var __r;\n" +
-          "try {\n" +
-          "  " +
-          findCompById("comp", compId).split("\n").join("\n  ") +
-          "  var srcItem = app.project.itemByID(" + sourceCompId + ");\n" +
-          "  if (!srcItem || !(srcItem instanceof CompItem)) {\n" +
-          '    throw new Error("Source composition not found with id: ' + sourceCompId + '");\n' +
-          "  }\n" +
-          "  var newLayer = comp.layers.add(srcItem);\n" +
-          extras +
-          "  __r = { success: true, data: " +
-          layerBase("newLayer") +
-          " };\n" +
-          "} finally {\n" +
-          "  app.endUndoGroup();\n" +
-          "}\n" +
-          "return __r;\n"
-      );
-      return run(script, "add_comp_layer");
-    }
+  const script = wrapWithReturn(
+    'app.beginUndoGroup("add_comp_layer");\n' +
+      "var __r;\n" +
+      "try {\n" +
+      "  " +
+      findCompById("comp", compId).split("\n").join("\n  ") +
+      "  var srcItem = app.project.itemByID(" + sourceCompId + ");\n" +
+      "  if (!srcItem || !(srcItem instanceof CompItem)) {\n" +
+      '    throw new Error("Source composition not found with id: ' + sourceCompId + '");\n' +
+      "  }\n" +
+      "  var newLayer = comp.layers.add(srcItem);\n" +
+      extras +
+      "  __r = { success: true, data: " +
+      layerBase("newLayer") +
+      " };\n" +
+      "} finally {\n" +
+      "  app.endUndoGroup();\n" +
+      "}\n" +
+      "return __r;\n"
   );
+  return run(script, "add_comp_layer");
+}
 
-  // ── get_text_bounds ─────────────────────────────────────────────────────────
-
-  server.tool(
-    "get_text_bounds",
-    "Get the bounding box of a layer (especially useful for text layers) in both " +
-      "layer-local and composition coordinate space. Returns precise dimensions " +
-      "and position so you can align elements, check for overlaps, verify text " +
-      "fits within the frame, and detect safe-area violations. " +
-      "Uses sourceRectAtTime() and toComp() to handle position, anchor point, " +
-      "scale, rotation, and the full parent chain correctly. " +
-      "safeAreaViolation is true if any edge is within 10% of the comp boundary.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric id of the composition."),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer to measure."),
-      time: z
-        .number()
-        .min(0)
-        .optional()
-        .default(0)
-        .describe("Time in seconds at which to measure bounds (default: 0)."),
-    },
-    async ({ compId, layerIndex, time }) => {
-      const script = wrapWithReturn(
-        findCompById("_gtbComp", compId) +
-          getLayer("_gtbComp", String(layerIndex), "_gtbLayer") +
-          "var _gtbTime = " + (time ?? 0) + ";\n" +
-          "var _gtbRect = _gtbLayer.sourceRectAtTime(_gtbTime, true);\n" +
-          "var _gtbLocalCX = _gtbRect.left + _gtbRect.width / 2;\n" +
-          "var _gtbLocalCY = _gtbRect.top + _gtbRect.height / 2;\n" +
-          "var _gtbTL = _gtbLayer.toComp([_gtbRect.left, _gtbRect.top], _gtbTime);\n" +
-          "var _gtbTR = _gtbLayer.toComp([_gtbRect.left + _gtbRect.width, _gtbRect.top], _gtbTime);\n" +
-          "var _gtbBL = _gtbLayer.toComp([_gtbRect.left, _gtbRect.top + _gtbRect.height], _gtbTime);\n" +
-          "var _gtbBR = _gtbLayer.toComp([_gtbRect.left + _gtbRect.width, _gtbRect.top + _gtbRect.height], _gtbTime);\n" +
-          "var _gtbMinX = Math.min(_gtbTL[0], _gtbTR[0], _gtbBL[0], _gtbBR[0]);\n" +
-          "var _gtbMaxX = Math.max(_gtbTL[0], _gtbTR[0], _gtbBL[0], _gtbBR[0]);\n" +
-          "var _gtbMinY = Math.min(_gtbTL[1], _gtbTR[1], _gtbBL[1], _gtbBR[1]);\n" +
-          "var _gtbMaxY = Math.max(_gtbTL[1], _gtbTR[1], _gtbBL[1], _gtbBR[1]);\n" +
-          "var _gtbCompW = _gtbComp.width;\n" +
-          "var _gtbCompH = _gtbComp.height;\n" +
-          "var _gtbMarginX = _gtbCompW * 0.1;\n" +
-          "var _gtbMarginY = _gtbCompH * 0.1;\n" +
-          "var _gtbSafe = (_gtbMinX < _gtbMarginX || _gtbMinY < _gtbMarginY || _gtbMaxX > _gtbCompW - _gtbMarginX || _gtbMaxY > _gtbCompH - _gtbMarginY);\n" +
-          "return { success: true, data: {\n" +
-          "  compSpace: {\n" +
-          "    top: Math.round(_gtbMinY * 100) / 100,\n" +
-          "    left: Math.round(_gtbMinX * 100) / 100,\n" +
-          "    right: Math.round(_gtbMaxX * 100) / 100,\n" +
-          "    bottom: Math.round(_gtbMaxY * 100) / 100,\n" +
-          "    width: Math.round((_gtbMaxX - _gtbMinX) * 100) / 100,\n" +
-          "    height: Math.round((_gtbMaxY - _gtbMinY) * 100) / 100,\n" +
-          "    centerX: Math.round((_gtbMinX + _gtbMaxX) / 2 * 100) / 100,\n" +
-          "    centerY: Math.round((_gtbMinY + _gtbMaxY) / 2 * 100) / 100\n" +
-          "  },\n" +
-          "  layerSpace: {\n" +
-          "    top: _gtbRect.top,\n" +
-          "    left: _gtbRect.left,\n" +
-          "    width: _gtbRect.width,\n" +
-          "    height: _gtbRect.height\n" +
-          "  },\n" +
-          "  compSize: { width: _gtbCompW, height: _gtbCompH },\n" +
-          "  safeAreaViolation: _gtbSafe\n" +
-          "} };\n"
-      );
-      return run(script, "get_text_bounds");
-    }
+export async function getTextBoundsHelper(params: { compId: number; layerIndex: number; time?: number | undefined }) {
+  const { compId, layerIndex, time } = params;
+  const script = wrapWithReturn(
+    findCompById("_gtbComp", compId) +
+      getLayer("_gtbComp", String(layerIndex), "_gtbLayer") +
+      "var _gtbTime = " + (time ?? 0) + ";\n" +
+      "var _gtbRect = _gtbLayer.sourceRectAtTime(_gtbTime, true);\n" +
+      "var _gtbLocalCX = _gtbRect.left + _gtbRect.width / 2;\n" +
+      "var _gtbLocalCY = _gtbRect.top + _gtbRect.height / 2;\n" +
+      "var _gtbTL = _gtbLayer.toComp([_gtbRect.left, _gtbRect.top], _gtbTime);\n" +
+      "var _gtbTR = _gtbLayer.toComp([_gtbRect.left + _gtbRect.width, _gtbRect.top], _gtbTime);\n" +
+      "var _gtbBL = _gtbLayer.toComp([_gtbRect.left, _gtbRect.top + _gtbRect.height], _gtbTime);\n" +
+      "var _gtbBR = _gtbLayer.toComp([_gtbRect.left + _gtbRect.width, _gtbRect.top + _gtbRect.height], _gtbTime);\n" +
+      "var _gtbMinX = Math.min(_gtbTL[0], _gtbTR[0], _gtbBL[0], _gtbBR[0]);\n" +
+      "var _gtbMaxX = Math.max(_gtbTL[0], _gtbTR[0], _gtbBL[0], _gtbBR[0]);\n" +
+      "var _gtbMinY = Math.min(_gtbTL[1], _gtbTR[1], _gtbBL[1], _gtbBR[1]);\n" +
+      "var _gtbMaxY = Math.max(_gtbTL[1], _gtbTR[1], _gtbBL[1], _gtbBR[1]);\n" +
+      "var _gtbCompW = _gtbComp.width;\n" +
+      "var _gtbCompH = _gtbComp.height;\n" +
+      "var _gtbMarginX = _gtbCompW * 0.1;\n" +
+      "var _gtbMarginY = _gtbCompH * 0.1;\n" +
+      "var _gtbSafe = (_gtbMinX < _gtbMarginX || _gtbMinY < _gtbMarginY || _gtbMaxX > _gtbCompW - _gtbMarginX || _gtbMaxY > _gtbCompH - _gtbMarginY);\n" +
+      "return { success: true, data: {\n" +
+      "  compSpace: {\n" +
+      "    top: Math.round(_gtbMinY * 100) / 100,\n" +
+      "    left: Math.round(_gtbMinX * 100) / 100,\n" +
+      "    right: Math.round(_gtbMaxX * 100) / 100,\n" +
+      "    bottom: Math.round(_gtbMaxY * 100) / 100,\n" +
+      "    width: Math.round((_gtbMaxX - _gtbMinX) * 100) / 100,\n" +
+      "    height: Math.round((_gtbMaxY - _gtbMinY) * 100) / 100,\n" +
+      "    centerX: Math.round((_gtbMinX + _gtbMaxX) / 2 * 100) / 100,\n" +
+      "    centerY: Math.round((_gtbMinY + _gtbMaxY) / 2 * 100) / 100\n" +
+      "  },\n" +
+      "  layerSpace: {\n" +
+      "    top: _gtbRect.top,\n" +
+      "    left: _gtbRect.left,\n" +
+      "    width: _gtbRect.width,\n" +
+      "    height: _gtbRect.height\n" +
+      "  },\n" +
+      "  compSize: { width: _gtbCompW, height: _gtbCompH },\n" +
+      "  safeAreaViolation: _gtbSafe\n" +
+      "} };\n"
   );
+  return run(script, "get_text_bounds");
 }

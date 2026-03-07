@@ -38,6 +38,7 @@ import { registerTypographyTools } from "./tools/typography.js";
 import { registerShapePathTools } from "./tools/shape-paths.js";
 import { registerProjectItemTools } from "./tools/project-items.js";
 import { registerDesignKnowledgeTools } from "./tools/design-knowledge.js";
+import { registerCompoundTools } from "./tools/compound.js";
 
 // Import bridge so the singleton is initialized (and stale files cleaned) at
 // startup, before the server begins accepting requests.
@@ -77,6 +78,9 @@ registerProjectItemTools(server);
 
 // Register design knowledge tools (design references + golden examples)
 registerDesignKnowledgeTools(server);
+
+// Register compound tools (Phase 2 — high-level motion design tools)
+registerCompoundTools(server);
 
 // ─── Startup diagnostics (stderr only — stdout is reserved for MCP) ───────────
 

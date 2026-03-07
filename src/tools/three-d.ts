@@ -334,315 +334,205 @@ export function registerThreeDTools(server: McpServer): void {
     }
   );
 
-  // ─── set_camera_options ─────────────────────────────────────────────────────────
-  server.tool(
-    "set_camera_options",
-    "Set camera options like zoom, depth of field, focus distance, and aperture. " +
-      "The layer must be a camera layer.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the camera layer"),
-      zoom: z
-        .number()
-        .optional()
-        .describe("Camera zoom value (focal length equivalent)"),
-      depthOfField: z
-        .boolean()
-        .optional()
-        .describe("Enable or disable depth of field"),
-      focusDistance: z
-        .number()
-        .optional()
-        .describe("Focus distance in pixels"),
-      aperture: z
-        .number()
-        .optional()
-        .describe("Aperture value in pixels"),
-      blurLevel: z
-        .number()
-        .optional()
-        .describe("Blur level as percentage (100 = full blur)"),
-    },
-    async ({ compId, layerIndex, zoom, depthOfField, focusDistance, aperture, blurLevel }) => {
-      let setProps = "";
-      if (zoom !== undefined) {
-        setProps += "_camOpts.property(\"Zoom\").setValue(" + zoom + ");\n";
-      }
-      if (depthOfField !== undefined) {
-        setProps += "_camOpts.property(\"Depth of Field\").setValue(" + (depthOfField ? 1 : 0) + ");\n";
-      }
-      if (focusDistance !== undefined) {
-        setProps += "_camOpts.property(\"Focus Distance\").setValue(" + focusDistance + ");\n";
-      }
-      if (aperture !== undefined) {
-        setProps += "_camOpts.property(\"Aperture\").setValue(" + aperture + ");\n";
-      }
-      if (blurLevel !== undefined) {
-        setProps += "_camOpts.property(\"Blur Level\").setValue(" + blurLevel + ");\n";
-      }
+}
 
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "if (!(layer instanceof CameraLayer)) {\n" +
-        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a camera layer.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _camOpts = layer.property(\"Camera Options\");\n" +
-        setProps +
-        "return { success: true, data: {\n" +
-        "  layerIndex: " + layerIndex + ",\n" +
-        "  layerName: layer.name,\n" +
-        "  zoom: _camOpts.property(\"Zoom\").value,\n" +
-        "  depthOfField: _camOpts.property(\"Depth of Field\").value,\n" +
-        "  focusDistance: _camOpts.property(\"Focus Distance\").value,\n" +
-        "  aperture: _camOpts.property(\"Aperture\").value,\n" +
-        "  blurLevel: _camOpts.property(\"Blur Level\").value\n" +
-        "} };\n";
+// ---------------------------------------------------------------------------
+// Demoted helpers (formerly server.tool registrations)
+// ---------------------------------------------------------------------------
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_camera_options"));
+export async function setCameraOptionsHelper(params: {
+  compId: number;
+  layerIndex: number;
+  zoom?: number;
+  depthOfField?: boolean;
+  focusDistance?: number;
+  aperture?: number;
+  blurLevel?: number;
+}) {
+  const { compId, layerIndex, zoom, depthOfField, focusDistance, aperture, blurLevel } = params;
+  let setProps = "";
+  if (zoom !== undefined) {
+    setProps += "_camOpts.property(\"Zoom\").setValue(" + zoom + ");\n";
+  }
+  if (depthOfField !== undefined) {
+    setProps += "_camOpts.property(\"Depth of Field\").setValue(" + (depthOfField ? 1 : 0) + ");\n";
+  }
+  if (focusDistance !== undefined) {
+    setProps += "_camOpts.property(\"Focus Distance\").setValue(" + focusDistance + ");\n";
+  }
+  if (aperture !== undefined) {
+    setProps += "_camOpts.property(\"Aperture\").setValue(" + aperture + ");\n";
+  }
+  if (blurLevel !== undefined) {
+    setProps += "_camOpts.property(\"Blur Level\").setValue(" + blurLevel + ");\n";
+  }
 
-      try {
-        return runScript(script, "set_camera_options");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "if (!(layer instanceof CameraLayer)) {\n" +
+    "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a camera layer.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _camOpts = layer.property(\"Camera Options\");\n" +
+    setProps +
+    "return { success: true, data: {\n" +
+    "  layerIndex: " + layerIndex + ",\n" +
+    "  layerName: layer.name,\n" +
+    "  zoom: _camOpts.property(\"Zoom\").value,\n" +
+    "  depthOfField: _camOpts.property(\"Depth of Field\").value,\n" +
+    "  focusDistance: _camOpts.property(\"Focus Distance\").value,\n" +
+    "  aperture: _camOpts.property(\"Aperture\").value,\n" +
+    "  blurLevel: _camOpts.property(\"Blur Level\").value\n" +
+    "} };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_camera_options"));
+
+  try {
+    return runScript(script, "set_camera_options");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function setLightOptionsHelper(params: {
+  compId: number;
+  layerIndex: number;
+  intensity?: number;
+  color?: number[];
+  coneAngle?: number;
+  coneFeather?: number;
+  castsShadows?: boolean;
+  shadowDarkness?: number;
+  shadowDiffusion?: number;
+}) {
+  const { compId, layerIndex, intensity, color, coneAngle, coneFeather, castsShadows, shadowDarkness, shadowDiffusion } = params;
+  let setProps = "";
+  if (intensity !== undefined) {
+    setProps += "_lightOpts.property(\"Intensity\").setValue(" + intensity + ");\n";
+  }
+  if (color !== undefined) {
+    setProps += "_lightOpts.property(\"Color\").setValue([" + color.join(",") + "]);\n";
+  }
+  if (coneAngle !== undefined) {
+    setProps += "_lightOpts.property(\"Cone Angle\").setValue(" + coneAngle + ");\n";
+  }
+  if (coneFeather !== undefined) {
+    setProps += "_lightOpts.property(\"Cone Feather\").setValue(" + coneFeather + ");\n";
+  }
+  if (castsShadows !== undefined) {
+    setProps += "_lightOpts.property(\"Casts Shadows\").setValue(" + (castsShadows ? 1 : 0) + ");\n";
+  }
+  if (shadowDarkness !== undefined) {
+    setProps += "_lightOpts.property(\"Shadow Darkness\").setValue(" + shadowDarkness + ");\n";
+  }
+  if (shadowDiffusion !== undefined) {
+    setProps += "_lightOpts.property(\"Shadow Diffusion\").setValue(" + shadowDiffusion + ");\n";
+  }
+
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "if (!(layer instanceof LightLayer)) {\n" +
+    "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a light layer.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _lightOpts = layer.property(\"Light Options\");\n" +
+    setProps +
+    "var _ltMap = {};\n" +
+    "_ltMap[LightType.PARALLEL] = \"Parallel\";\n" +
+    "_ltMap[LightType.SPOT] = \"Spot\";\n" +
+    "_ltMap[LightType.POINT] = \"Point\";\n" +
+    "_ltMap[LightType.AMBIENT] = \"Ambient\";\n" +
+    "var _ltStr = _ltMap[layer.lightType] || \"Unknown\";\n" +
+    "return { success: true, data: {\n" +
+    "  layerIndex: " + layerIndex + ",\n" +
+    "  layerName: layer.name,\n" +
+    "  lightType: _ltStr\n" +
+    "} };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_light_options"));
+
+  try {
+    return runScript(script, "set_light_options");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function setMaterialOptionsHelper(params: {
+  compId: number;
+  layerIndex: number;
+  acceptsLights?: boolean;
+  acceptsShadows?: boolean;
+  ambient?: number;
+  diffuse?: number;
+  specularIntensity?: number;
+  specularShininess?: number;
+  metal?: number;
+  lightTransmission?: number;
+}) {
+  const { compId, layerIndex, acceptsLights, acceptsShadows, ambient, diffuse, specularIntensity, specularShininess, metal, lightTransmission } = params;
+  const requestedProps: string[] = [];
+  let setProps = "";
+  const addMaterialSetter = (input: unknown, propertyName: string, valueLiteral: string, resultKey: string) => {
+    if (input === undefined) {
+      return;
     }
-  );
+    requestedProps.push(resultKey);
+    setProps +=
+      "try {\n" +
+      "  var _prop = _matOpts.property(\"" + propertyName + "\");\n" +
+      "  if (!_prop) {\n" +
+      "    _warnings.push(\"" + propertyName + " is not available on this layer or renderer.\");\n" +
+      "  } else {\n" +
+      "    _prop.setValue(" + valueLiteral + ");\n" +
+      "    _applied.push(\"" + resultKey + "\");\n" +
+      "  }\n" +
+      "} catch (_e) {\n" +
+      "  _warnings.push(\"Failed to set " + propertyName + ": \" + _e.toString());\n" +
+      "}\n";
+  };
 
-  // ─── set_light_options ──────────────────────────────────────────────────────────
-  server.tool(
-    "set_light_options",
-    "Set light options like intensity, color, shadow settings. " +
-      "The layer must be a light layer.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the light layer"),
-      intensity: z
-        .number()
-        .optional()
-        .describe("Light intensity as percentage (0-400)"),
-      color: z
-        .array(z.number())
-        .length(3)
-        .optional()
-        .describe("Light color as [r, g, b] normalized 0-1"),
-      coneAngle: z
-        .number()
-        .optional()
-        .describe("Cone angle in degrees (Spot lights only)"),
-      coneFeather: z
-        .number()
-        .optional()
-        .describe("Cone feather / edge softness in degrees (Spot lights only)"),
-      castsShadows: z
-        .boolean()
-        .optional()
-        .describe("Enable or disable shadow casting"),
-      shadowDarkness: z
-        .number()
-        .optional()
-        .describe("Shadow darkness 0-100"),
-      shadowDiffusion: z
-        .number()
-        .optional()
-        .describe("Shadow diffusion in pixels"),
-    },
-    async ({ compId, layerIndex, intensity, color, coneAngle, coneFeather, castsShadows, shadowDarkness, shadowDiffusion }) => {
-      let setProps = "";
-      if (intensity !== undefined) {
-        setProps += "_lightOpts.property(\"Intensity\").setValue(" + intensity + ");\n";
-      }
-      if (color !== undefined) {
-        setProps += "_lightOpts.property(\"Color\").setValue([" + color.join(",") + "]);\n";
-      }
-      if (coneAngle !== undefined) {
-        setProps += "_lightOpts.property(\"Cone Angle\").setValue(" + coneAngle + ");\n";
-      }
-      if (coneFeather !== undefined) {
-        setProps += "_lightOpts.property(\"Cone Feather\").setValue(" + coneFeather + ");\n";
-      }
-      if (castsShadows !== undefined) {
-        setProps += "_lightOpts.property(\"Casts Shadows\").setValue(" + (castsShadows ? 1 : 0) + ");\n";
-      }
-      if (shadowDarkness !== undefined) {
-        setProps += "_lightOpts.property(\"Shadow Darkness\").setValue(" + shadowDarkness + ");\n";
-      }
-      if (shadowDiffusion !== undefined) {
-        setProps += "_lightOpts.property(\"Shadow Diffusion\").setValue(" + shadowDiffusion + ");\n";
-      }
+  addMaterialSetter(acceptsLights, "Accepts Lights", acceptsLights ? "1" : "0", "acceptsLights");
+  addMaterialSetter(acceptsShadows, "Accepts Shadows", acceptsShadows ? "1" : "0", "acceptsShadows");
+  addMaterialSetter(ambient, "Ambient", String(ambient), "ambient");
+  addMaterialSetter(diffuse, "Diffuse", String(diffuse), "diffuse");
+  addMaterialSetter(specularIntensity, "Specular Intensity", String(specularIntensity), "specularIntensity");
+  addMaterialSetter(specularShininess, "Specular Shininess", String(specularShininess), "specularShininess");
+  addMaterialSetter(metal, "Metal", String(metal), "metal");
+  addMaterialSetter(lightTransmission, "Light Transmission", String(lightTransmission), "lightTransmission");
 
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "if (!(layer instanceof LightLayer)) {\n" +
-        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a light layer.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _lightOpts = layer.property(\"Light Options\");\n" +
-        setProps +
-        "var _ltMap = {};\n" +
-        "_ltMap[LightType.PARALLEL] = \"Parallel\";\n" +
-        "_ltMap[LightType.SPOT] = \"Spot\";\n" +
-        "_ltMap[LightType.POINT] = \"Point\";\n" +
-        "_ltMap[LightType.AMBIENT] = \"Ambient\";\n" +
-        "var _ltStr = _ltMap[layer.lightType] || \"Unknown\";\n" +
-        "return { success: true, data: {\n" +
-        "  layerIndex: " + layerIndex + ",\n" +
-        "  layerName: layer.name,\n" +
-        "  lightType: _ltStr\n" +
-        "} };\n";
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "if (!layer.threeDLayer) {\n" +
+    "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a 3D layer. Call set_3d_layer first.\", code: \"INVALID_STATE\" } };\n" +
+    "}\n" +
+    "if (layer instanceof CameraLayer || layer instanceof LightLayer) {\n" +
+    "  return { success: false, error: { message: \"Cannot set material options on camera or light layers.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _matOpts = layer.property(\"Material Options\");\n" +
+    "if (!_matOpts) {\n" +
+    "  return { success: false, error: { message: \"Material Options group not found on this layer.\", code: \"INVALID_STATE\" } };\n" +
+    "}\n" +
+    "var _applied = [];\n" +
+    "var _warnings = [];\n" +
+    setProps +
+    "if (_applied.length === 0 && " + requestedProps.length + " > 0) {\n" +
+    "  return { success: false, error: { message: \"None of the requested material options could be applied.\", code: \"UNSUPPORTED_OPERATION\" }, data: { layerIndex: " + layerIndex + ", layerName: layer.name, requested: " + JSON.stringify(requestedProps) + ", warnings: _warnings } };\n" +
+    "}\n" +
+    "return { success: true, data: {\n" +
+    "  layerIndex: " + layerIndex + ",\n" +
+    "  layerName: layer.name,\n" +
+    "  requested: " + JSON.stringify(requestedProps) + ",\n" +
+    "  applied: _applied,\n" +
+    "  warnings: _warnings\n" +
+    "} };\n";
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_light_options"));
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_material_options"));
 
-      try {
-        return runScript(script, "set_light_options");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
-
-  // ─── set_material_options ────────────────────────────────────────────────────────
-  server.tool(
-    "set_material_options",
-    "Set material options on a 3D layer to control how it responds to lights and shadows. " +
-      "The layer must be 3D-enabled.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the 3D layer"),
-      acceptsLights: z
-        .boolean()
-        .optional()
-        .describe("Whether the layer responds to lights"),
-      acceptsShadows: z
-        .boolean()
-        .optional()
-        .describe("Whether the layer receives shadows from other layers"),
-      ambient: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Ambient light contribution 0-100"),
-      diffuse: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Diffuse light contribution 0-100"),
-      specularIntensity: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Specular highlight intensity 0-100"),
-      specularShininess: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Specular highlight shininess 0-100"),
-      metal: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Metal appearance 0-100"),
-      lightTransmission: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Light transmission 0-100 (how much light passes through the layer)"),
-    },
-    async ({ compId, layerIndex, acceptsLights, acceptsShadows, ambient, diffuse, specularIntensity, specularShininess, metal, lightTransmission }) => {
-      const requestedProps: string[] = [];
-      let setProps = "";
-      const addMaterialSetter = (input: unknown, propertyName: string, valueLiteral: string, resultKey: string) => {
-        if (input === undefined) {
-          return;
-        }
-        requestedProps.push(resultKey);
-        setProps +=
-          "try {\n" +
-          "  var _prop = _matOpts.property(\"" + propertyName + "\");\n" +
-          "  if (!_prop) {\n" +
-          "    _warnings.push(\"" + propertyName + " is not available on this layer or renderer.\");\n" +
-          "  } else {\n" +
-          "    _prop.setValue(" + valueLiteral + ");\n" +
-          "    _applied.push(\"" + resultKey + "\");\n" +
-          "  }\n" +
-          "} catch (_e) {\n" +
-          "  _warnings.push(\"Failed to set " + propertyName + ": \" + _e.toString());\n" +
-          "}\n";
-      };
-
-      addMaterialSetter(acceptsLights, "Accepts Lights", acceptsLights ? "1" : "0", "acceptsLights");
-      addMaterialSetter(acceptsShadows, "Accepts Shadows", acceptsShadows ? "1" : "0", "acceptsShadows");
-      addMaterialSetter(ambient, "Ambient", String(ambient), "ambient");
-      addMaterialSetter(diffuse, "Diffuse", String(diffuse), "diffuse");
-      addMaterialSetter(specularIntensity, "Specular Intensity", String(specularIntensity), "specularIntensity");
-      addMaterialSetter(specularShininess, "Specular Shininess", String(specularShininess), "specularShininess");
-      addMaterialSetter(metal, "Metal", String(metal), "metal");
-      addMaterialSetter(lightTransmission, "Light Transmission", String(lightTransmission), "lightTransmission");
-
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "if (!layer.threeDLayer) {\n" +
-        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a 3D layer. Call set_3d_layer first.\", code: \"INVALID_STATE\" } };\n" +
-        "}\n" +
-        "if (layer instanceof CameraLayer || layer instanceof LightLayer) {\n" +
-        "  return { success: false, error: { message: \"Cannot set material options on camera or light layers.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _matOpts = layer.property(\"Material Options\");\n" +
-        "if (!_matOpts) {\n" +
-        "  return { success: false, error: { message: \"Material Options group not found on this layer.\", code: \"INVALID_STATE\" } };\n" +
-        "}\n" +
-        "var _applied = [];\n" +
-        "var _warnings = [];\n" +
-        setProps +
-        "if (_applied.length === 0 && " + requestedProps.length + " > 0) {\n" +
-        "  return { success: false, error: { message: \"None of the requested material options could be applied.\", code: \"UNSUPPORTED_OPERATION\" }, data: { layerIndex: " + layerIndex + ", layerName: layer.name, requested: " + JSON.stringify(requestedProps) + ", warnings: _warnings } };\n" +
-        "}\n" +
-        "return { success: true, data: {\n" +
-        "  layerIndex: " + layerIndex + ",\n" +
-        "  layerName: layer.name,\n" +
-        "  requested: " + JSON.stringify(requestedProps) + ",\n" +
-        "  applied: _applied,\n" +
-        "  warnings: _warnings\n" +
-        "} };\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_material_options"));
-
-      try {
-        return runScript(script, "set_material_options");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  try {
+    return runScript(script, "set_material_options");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
 }

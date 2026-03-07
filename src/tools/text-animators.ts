@@ -271,186 +271,132 @@ export function registerTextAnimatorTools(server: McpServer): void {
       }
     }
   );
+}
 
-  // ─── list_text_animators ────────────────────────────────────────────────
-  server.tool(
-    "list_text_animators",
-    "List all text animators on a text layer including their properties and selector settings. " +
-      "Use this to discover animator indices for set_text_animator_values and set_text_selector.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of a text layer"),
-    },
-    async ({ compId, layerIndex }) => {
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "if (!(layer instanceof TextLayer)) {\n" +
-        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a text layer.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _animators = layer.property(\"Text\").property(\"Animators\");\n" +
-        "var _result = [];\n" +
-        "for (var _ai = 1; _ai <= _animators.numProperties; _ai++) {\n" +
-        "  var _anim = _animators.property(_ai);\n" +
-        "  var _props = [];\n" +
-        "  var _propGroup = _anim.property(\"ADBE Text Animator Properties\");\n" +
-        "  if (_propGroup) {\n" +
-        "    for (var _pi = 1; _pi <= _propGroup.numProperties; _pi++) {\n" +
-        "      var _p = _propGroup.property(_pi);\n" +
-        "      _props.push({ name: _p.name, matchName: _p.matchName });\n" +
-        "    }\n" +
-        "    }\n" +
-        "  var _selectors = [];\n" +
-        "  var _selGroup = _anim.property(\"ADBE Text Selectors\");\n" +
-        "  if (_selGroup) {\n" +
-        "    for (var _si = 1; _si <= _selGroup.numProperties; _si++) {\n" +
-        "      var _sel = _selGroup.property(_si);\n" +
-        "      var _selInfo = { name: _sel.name, index: _si };\n" +
-        "      try { _selInfo.start = _sel.property(\"Start\").value; } catch (_e) {}\n" +
-        "      try { _selInfo.end = _sel.property(\"End\").value; } catch (_e) {}\n" +
-        "      try { _selInfo.offset = _sel.property(\"Offset\").value; } catch (_e) {}\n" +
-        "      try {\n" +
-        "        var _bo = _sel.property(\"Based On\").value;\n" +
-        "        var _boMap = { 1: \"Characters\", 2: \"CharactersExcludingSpaces\", 3: \"Words\", 4: \"Lines\" };\n" +
-        "        _selInfo.basedOn = _boMap[_bo] || String(_bo);\n" +
-        "      } catch (_e) {}\n" +
-        "      _selectors.push(_selInfo);\n" +
-        "    }\n" +
-        "  }\n" +
-        "  _result.push({ index: _ai, name: _anim.name, properties: _props, selectors: _selectors });\n" +
-        "}\n" +
-        "return { success: true, data: { animators: _result, count: _result.length } };\n";
+// ---------------------------------------------------------------------------
+// Demoted helpers (formerly server.tool registrations)
+// ---------------------------------------------------------------------------
 
-      const script = wrapWithReturn(body);
+export async function listTextAnimatorsHelper(params: {
+  compId: number;
+  layerIndex: number;
+}) {
+  const { compId, layerIndex } = params;
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "if (!(layer instanceof TextLayer)) {\n" +
+    "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a text layer.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _animators = layer.property(\"Text\").property(\"Animators\");\n" +
+    "var _result = [];\n" +
+    "for (var _ai = 1; _ai <= _animators.numProperties; _ai++) {\n" +
+    "  var _anim = _animators.property(_ai);\n" +
+    "  var _props = [];\n" +
+    "  var _propGroup = _anim.property(\"ADBE Text Animator Properties\");\n" +
+    "  if (_propGroup) {\n" +
+    "    for (var _pi = 1; _pi <= _propGroup.numProperties; _pi++) {\n" +
+    "      var _p = _propGroup.property(_pi);\n" +
+    "      _props.push({ name: _p.name, matchName: _p.matchName });\n" +
+    "    }\n" +
+    "    }\n" +
+    "  var _selectors = [];\n" +
+    "  var _selGroup = _anim.property(\"ADBE Text Selectors\");\n" +
+    "  if (_selGroup) {\n" +
+    "    for (var _si = 1; _si <= _selGroup.numProperties; _si++) {\n" +
+    "      var _sel = _selGroup.property(_si);\n" +
+    "      var _selInfo = { name: _sel.name, index: _si };\n" +
+    "      try { _selInfo.start = _sel.property(\"Start\").value; } catch (_e) {}\n" +
+    "      try { _selInfo.end = _sel.property(\"End\").value; } catch (_e) {}\n" +
+    "      try { _selInfo.offset = _sel.property(\"Offset\").value; } catch (_e) {}\n" +
+    "      try {\n" +
+    "        var _bo = _sel.property(\"Based On\").value;\n" +
+    "        var _boMap = { 1: \"Characters\", 2: \"CharactersExcludingSpaces\", 3: \"Words\", 4: \"Lines\" };\n" +
+    "        _selInfo.basedOn = _boMap[_bo] || String(_bo);\n" +
+    "      } catch (_e) {}\n" +
+    "      _selectors.push(_selInfo);\n" +
+    "    }\n" +
+    "  }\n" +
+    "  _result.push({ index: _ai, name: _anim.name, properties: _props, selectors: _selectors });\n" +
+    "}\n" +
+    "return { success: true, data: { animators: _result, count: _result.length } };\n";
 
-      try {
-        return runScript(script, "list_text_animators");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  const script = wrapWithReturn(body);
 
-  // ─── set_text_selector ──────────────────────────────────────────────────
-  server.tool(
-    "set_text_selector",
-    "Set range selector properties on a text animator. " +
-      "Controls which characters/words/lines are affected by the animator.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of a text layer"),
-      animatorIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the text animator on this layer"),
-      selectorIndex: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("1-based index of the selector within the animator (default 1)"),
-      start: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Range Selector Start value 0-100"),
-      end: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Range Selector End value 0-100"),
-      offset: z
-        .number()
-        .optional()
-        .describe("Range Selector Offset value in percent"),
-      amount: z
-        .number()
-        .min(0)
-        .max(100)
-        .optional()
-        .describe("Range Selector Amount value 0-100"),
-      basedOn: z
-        .enum(["Characters", "CharactersExcludingSpaces", "Words", "Lines"])
-        .optional()
-        .describe("Unit of range selection"),
-    },
-    async ({ compId, layerIndex, animatorIndex, selectorIndex, start, end, offset, amount, basedOn }) => {
-      const selIdx = selectorIndex ?? 1;
+  try {
+    return runScript(script, "list_text_animators");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
+}
 
-      let setLines = "";
-      if (start !== undefined) {
-        setLines += "_selector.property(\"Start\").setValue(" + start + ");\n";
-      }
-      if (end !== undefined) {
-        setLines += "_selector.property(\"End\").setValue(" + end + ");\n";
-      }
-      if (offset !== undefined) {
-        setLines += "_selector.property(\"Offset\").setValue(" + offset + ");\n";
-      }
-      if (amount !== undefined) {
-        setLines += "try { _selector.property(\"Amount\").setValue(" + amount + "); } catch (_e) {}\n";
-      }
-      if (basedOn !== undefined) {
-        const basedOnMap: Record<string, number> = {
-          "Characters": 1,
-          "CharactersExcludingSpaces": 2,
-          "Words": 3,
-          "Lines": 4,
-        };
-        setLines += "_selector.property(\"Based On\").setValue(" + basedOnMap[basedOn] + ");\n";
-      }
+export async function setTextSelectorHelper(params: {
+  compId: number;
+  layerIndex: number;
+  animatorIndex: number;
+  selectorIndex?: number;
+  start?: number;
+  end?: number;
+  offset?: number;
+  amount?: number;
+  basedOn?: "Characters" | "CharactersExcludingSpaces" | "Words" | "Lines";
+}) {
+  const { compId, layerIndex, animatorIndex, selectorIndex, start, end, offset, amount, basedOn } = params;
+  const selIdx = selectorIndex ?? 1;
 
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "if (!(layer instanceof TextLayer)) {\n" +
-        "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a text layer.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _animators = layer.property(\"Text\").property(\"Animators\");\n" +
-        "if (" + animatorIndex + " < 1 || " + animatorIndex + " > _animators.numProperties) {\n" +
-        "  return { success: false, error: { message: \"Animator index " + animatorIndex + " out of range — layer has \" + _animators.numProperties + \" animators.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _animator = _animators.property(" + animatorIndex + ");\n" +
-        "var _selGroup = _animator.property(\"ADBE Text Selectors\");\n" +
-        "if (!_selGroup) {\n" +
-        "  return { success: false, error: { message: \"Animator selectors group not found.\", code: \"INVALID_STATE\" } };\n" +
-        "}\n" +
-        "if (" + selIdx + " < 1 || " + selIdx + " > _selGroup.numProperties) {\n" +
-        "  return { success: false, error: { message: \"Selector index " + selIdx + " out of range — animator has \" + _selGroup.numProperties + \" selectors.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _selector = _selGroup.property(" + selIdx + ");\n" +
-        setLines +
-        "var _curStart = 0; try { _curStart = _selector.property(\"Start\").value; } catch (_e) {}\n" +
-        "var _curEnd = 100; try { _curEnd = _selector.property(\"End\").value; } catch (_e) {}\n" +
-        "var _curOffset = 0; try { _curOffset = _selector.property(\"Offset\").value; } catch (_e) {}\n" +
-        "return { success: true, data: { animatorIndex: " + animatorIndex + ", selectorIndex: " + selIdx + ", start: _curStart, end: _curEnd, offset: _curOffset } };\n";
+  let setLines = "";
+  if (start !== undefined) {
+    setLines += "_selector.property(\"Start\").setValue(" + start + ");\n";
+  }
+  if (end !== undefined) {
+    setLines += "_selector.property(\"End\").setValue(" + end + ");\n";
+  }
+  if (offset !== undefined) {
+    setLines += "_selector.property(\"Offset\").setValue(" + offset + ");\n";
+  }
+  if (amount !== undefined) {
+    setLines += "try { _selector.property(\"Amount\").setValue(" + amount + "); } catch (_e) {}\n";
+  }
+  if (basedOn !== undefined) {
+    const basedOnMap: Record<string, number> = {
+      "Characters": 1,
+      "CharactersExcludingSpaces": 2,
+      "Words": 3,
+      "Lines": 4,
+    };
+    setLines += "_selector.property(\"Based On\").setValue(" + basedOnMap[basedOn] + ");\n";
+  }
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_text_selector"));
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "if (!(layer instanceof TextLayer)) {\n" +
+    "  return { success: false, error: { message: \"Layer \" + " + layerIndex + " + \" is not a text layer.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _animators = layer.property(\"Text\").property(\"Animators\");\n" +
+    "if (" + animatorIndex + " < 1 || " + animatorIndex + " > _animators.numProperties) {\n" +
+    "  return { success: false, error: { message: \"Animator index " + animatorIndex + " out of range — layer has \" + _animators.numProperties + \" animators.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _animator = _animators.property(" + animatorIndex + ");\n" +
+    "var _selGroup = _animator.property(\"ADBE Text Selectors\");\n" +
+    "if (!_selGroup) {\n" +
+    "  return { success: false, error: { message: \"Animator selectors group not found.\", code: \"INVALID_STATE\" } };\n" +
+    "}\n" +
+    "if (" + selIdx + " < 1 || " + selIdx + " > _selGroup.numProperties) {\n" +
+    "  return { success: false, error: { message: \"Selector index " + selIdx + " out of range — animator has \" + _selGroup.numProperties + \" selectors.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _selector = _selGroup.property(" + selIdx + ");\n" +
+    setLines +
+    "var _curStart = 0; try { _curStart = _selector.property(\"Start\").value; } catch (_e) {}\n" +
+    "var _curEnd = 100; try { _curEnd = _selector.property(\"End\").value; } catch (_e) {}\n" +
+    "var _curOffset = 0; try { _curOffset = _selector.property(\"Offset\").value; } catch (_e) {}\n" +
+    "return { success: true, data: { animatorIndex: " + animatorIndex + ", selectorIndex: " + selIdx + ", start: _curStart, end: _curEnd, offset: _curOffset } };\n";
 
-      try {
-        return runScript(script, "set_text_selector");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_text_selector"));
+
+  try {
+    return runScript(script, "set_text_selector");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
 }

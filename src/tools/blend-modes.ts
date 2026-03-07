@@ -187,42 +187,27 @@ export function registerBlendModeTools(server: McpServer): void {
     }
   );
 
-  // ─── get_blend_mode ───────────────────────────────────────────────────────
-  server.tool(
-    "get_blend_mode",
-    "Get the current blending mode of a layer. " +
-      "Returns the friendly mode name (e.g. 'Screen', 'Multiply') that can be " +
-      "passed directly back to set_blend_mode. " +
-      "Useful for inspecting a comp before making changes, " +
-      "or for verifying that a set_blend_mode call took effect.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer"),
-    },
-    async ({ compId, layerIndex }) => {
-      const lookup = buildBlendModeNameLookup("layer");
+}
 
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        lookup +
-        "return { success: true, data: { layerIndex: " + layerIndex + ", layerName: layer.name, blendMode: _bmName } };\n";
+// ---------------------------------------------------------------------------
+// Demoted helpers (no longer registered as MCP tools)
+// ---------------------------------------------------------------------------
 
-      const script = wrapWithReturn(body);
+export async function getBlendModeHelper(params: { compId: number; layerIndex: number }) {
+  const { compId, layerIndex } = params;
+  const lookup = buildBlendModeNameLookup("layer");
 
-      try {
-        return runScript(script, "get_blend_mode");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    lookup +
+    "return { success: true, data: { layerIndex: " + layerIndex + ", layerName: layer.name, blendMode: _bmName } };\n";
+
+  const script = wrapWithReturn(body);
+
+  try {
+    return runScript(script, "get_blend_mode");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
 }

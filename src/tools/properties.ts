@@ -7,8 +7,10 @@
  *   - list_property_tree      Discover the property tree of a layer
  *   - get_property            Read the current value of any layer property
  *   - set_property            Set the value of any layer property
- *   - set_property_keyframes  Add keyframes to any animatable property
- *   - get_keyframes           Read all keyframes from a property
+ *
+ * Helpers (exported for compound tools):
+ *   - setPropertyKeyframesHelper
+ *   - getKeyframesHelper
  *
  * All ExtendScript is ES3-compatible (var only, no arrow functions,
  * no template literals, string concatenation only).
@@ -80,6 +82,137 @@ const RESOLVE_PATH_FN =
   "  }\n" +
   "  return node;\n" +
   "}\n";
+
+// ---------------------------------------------------------------------------
+// Exported helper functions (demoted from server.tool registrations)
+// ---------------------------------------------------------------------------
+
+export async function setPropertyKeyframesHelper(params: {
+  compId: number;
+  layerIndex: number;
+  propertyPath: Array<{ name?: string | undefined; matchName?: string | undefined; index?: number | undefined }>;
+  keyframes: Array<{
+    time: number;
+    value: number | number[];
+    interpolation?: "linear" | "hold" | "bezier" | undefined;
+  }>;
+  clearExisting?: boolean | undefined;
+}) {
+  const { compId, layerIndex, propertyPath, keyframes } = params;
+  const clearEx = params.clearExisting === true;
+
+  // Build keyframe data array as ES3 literal
+  let kfArrayLiteral = "[";
+  for (let i = 0; i < keyframes.length; i++) {
+    const kf = keyframes[i];
+    const valLit = Array.isArray(kf.value) ? "[" + kf.value.join(",") + "]" : String(kf.value);
+    const interpLit = kf.interpolation ? '"' + kf.interpolation + '"' : "null";
+    if (i > 0) kfArrayLiteral += ",";
+    kfArrayLiteral += "{time:" + kf.time + ",value:" + valLit + ",interpolation:" + interpLit + "}";
+  }
+  kfArrayLiteral += "]";
+
+  const inner =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    RESOLVE_PATH_FN +
+    "var _segments = " + JSON.stringify(propertyPath) + ";\n" +
+    "var _prop = _resolvePath(layer, _segments);\n" +
+    "if (!_prop) {\n" +
+    '  return { success: false, error: { message: "Property path not found.", code: "PROPERTY_NOT_FOUND" } };\n' +
+    "}\n" +
+    "if (_prop.propertyType !== PropertyType.PROPERTY) {\n" +
+    '  return { success: false, error: { message: "Path resolves to a group, not a property.", code: "NOT_A_PROPERTY" } };\n' +
+    "}\n" +
+    "if (!_prop.canVaryOverTime) {\n" +
+    '  return { success: false, error: { message: "Property cannot be animated.", code: "NOT_ANIMATABLE" } };\n' +
+    "}\n" +
+    (clearEx
+      ? "for (var _rk = _prop.numKeys; _rk >= 1; _rk--) {\n" +
+        "  _prop.removeKey(_rk);\n" +
+        "}\n"
+      : "") +
+    "var _kfs = " + kfArrayLiteral + ";\n" +
+    "for (var _ki = 0; _ki < _kfs.length; _ki++) {\n" +
+    "  var _kf = _kfs[_ki];\n" +
+    "  _prop.setValueAtTime(_kf.time, _kf.value);\n" +
+    "  if (_kf.interpolation) {\n" +
+    "    var _nki = _prop.nearestKeyIndex(_kf.time);\n" +
+    "    if (_kf.interpolation === 'linear') {\n" +
+    "      _prop.setInterpolationTypeAtKey(_nki, KeyframeInterpolationType.LINEAR, KeyframeInterpolationType.LINEAR);\n" +
+    "    } else if (_kf.interpolation === 'hold') {\n" +
+    "      _prop.setInterpolationTypeAtKey(_nki, KeyframeInterpolationType.HOLD, KeyframeInterpolationType.HOLD);\n" +
+    "    } else if (_kf.interpolation === 'bezier') {\n" +
+    "      _prop.setInterpolationTypeAtKey(_nki, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);\n" +
+    "    }\n" +
+    "  }\n" +
+    "}\n" +
+    "return {\n" +
+    "  success: true,\n" +
+    "  data: {\n" +
+    "    propertyName: _prop.name,\n" +
+    "    keyframesAdded: _kfs.length,\n" +
+    "    totalKeys: _prop.numKeys\n" +
+    "  }\n" +
+    "};\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(inner, "set_property_keyframes"));
+  return runScript(script, "set_property_keyframes");
+}
+
+export async function getKeyframesHelper(params: {
+  compId: number;
+  layerIndex: number;
+  propertyPath: Array<{ name?: string | undefined; matchName?: string | undefined; index?: number | undefined }>;
+}) {
+  const { compId, layerIndex, propertyPath } = params;
+
+  const inner =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    RESOLVE_PATH_FN +
+    "var _segments = " + JSON.stringify(propertyPath) + ";\n" +
+    "var _prop = _resolvePath(layer, _segments);\n" +
+    "if (!_prop) {\n" +
+    '  return { success: false, error: { message: "Property path not found.", code: "PROPERTY_NOT_FOUND" } };\n' +
+    "}\n" +
+    "if (_prop.propertyType !== PropertyType.PROPERTY) {\n" +
+    '  return { success: false, error: { message: "Path resolves to a group, not a property.", code: "NOT_A_PROPERTY" } };\n' +
+    "}\n" +
+    "function _interpStr(t) {\n" +
+    "  if (t === KeyframeInterpolationType.LINEAR) return 'LINEAR';\n" +
+    "  if (t === KeyframeInterpolationType.BEZIER) return 'BEZIER';\n" +
+    "  if (t === KeyframeInterpolationType.HOLD) return 'HOLD';\n" +
+    "  return 'UNKNOWN';\n" +
+    "}\n" +
+    "var _keyframes = [];\n" +
+    "for (var _ki = 1; _ki <= _prop.numKeys; _ki++) {\n" +
+    "  var _kv = _prop.keyValue(_ki);\n" +
+    "  if (_kv instanceof Array) {\n" +
+    "    var _arr = [];\n" +
+    "    for (var _ai = 0; _ai < _kv.length; _ai++) _arr.push(_kv[_ai]);\n" +
+    "    _kv = _arr;\n" +
+    "  }\n" +
+    "  _keyframes.push({\n" +
+    "    index: _ki,\n" +
+    "    time: _prop.keyTime(_ki),\n" +
+    "    value: _kv,\n" +
+    "    inInterpolation: _interpStr(_prop.keyInInterpolationType(_ki)),\n" +
+    "    outInterpolation: _interpStr(_prop.keyOutInterpolationType(_ki))\n" +
+    "  });\n" +
+    "}\n" +
+    "return {\n" +
+    "  success: true,\n" +
+    "  data: {\n" +
+    "    propertyName: _prop.name,\n" +
+    "    numKeys: _prop.numKeys,\n" +
+    "    keyframes: _keyframes\n" +
+    "  }\n" +
+    "};\n";
+
+  const script = wrapWithReturn(inner);
+  return runScript(script, "get_keyframes");
+}
 
 // ---------------------------------------------------------------------------
 // registerPropertyTools
@@ -376,174 +509,6 @@ export function registerPropertyTools(server: McpServer): void {
 
       const script = wrapWithReturn(wrapInUndoGroup(inner, "set_property"));
       return runScript(script, "set_property");
-    }
-  );
-
-  // ── set_property_keyframes ──────────────────────────────────────────────────
-
-  server.tool(
-    "set_property_keyframes",
-    "Add keyframes to any animatable property. Use list_property_tree to find paths. " +
-      "Supports linear, hold, and bezier interpolation per keyframe.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the target composition."),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer."),
-      propertyPath: PropertyPath,
-      keyframes: z
-        .array(
-          z.object({
-            time: z.number().describe("Time in seconds for the keyframe."),
-            value: z
-              .union([z.number(), z.array(z.number())])
-              .describe("Keyframe value. Number for scalar, array for vector properties."),
-            interpolation: z
-              .enum(["linear", "hold", "bezier"])
-              .optional()
-              .describe("Interpolation type for this keyframe. Default is linear."),
-          })
-        )
-        .min(1)
-        .describe("Array of keyframes to add."),
-      clearExisting: z
-        .boolean()
-        .optional()
-        .describe("If true, remove all existing keyframes before adding new ones. Default false."),
-    },
-    async ({ compId, layerIndex, propertyPath, keyframes, clearExisting }) => {
-      const clearEx = clearExisting === true;
-
-      // Build keyframe data array as ES3 literal
-      let kfArrayLiteral = "[";
-      for (let i = 0; i < keyframes.length; i++) {
-        const kf = keyframes[i];
-        const valLit = Array.isArray(kf.value) ? "[" + kf.value.join(",") + "]" : String(kf.value);
-        const interpLit = kf.interpolation ? '"' + kf.interpolation + '"' : "null";
-        if (i > 0) kfArrayLiteral += ",";
-        kfArrayLiteral += "{time:" + kf.time + ",value:" + valLit + ",interpolation:" + interpLit + "}";
-      }
-      kfArrayLiteral += "]";
-
-      const inner =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        RESOLVE_PATH_FN +
-        "var _segments = " + JSON.stringify(propertyPath) + ";\n" +
-        "var _prop = _resolvePath(layer, _segments);\n" +
-        "if (!_prop) {\n" +
-        '  return { success: false, error: { message: "Property path not found.", code: "PROPERTY_NOT_FOUND" } };\n' +
-        "}\n" +
-        "if (_prop.propertyType !== PropertyType.PROPERTY) {\n" +
-        '  return { success: false, error: { message: "Path resolves to a group, not a property.", code: "NOT_A_PROPERTY" } };\n' +
-        "}\n" +
-        "if (!_prop.canVaryOverTime) {\n" +
-        '  return { success: false, error: { message: "Property cannot be animated.", code: "NOT_ANIMATABLE" } };\n' +
-        "}\n" +
-        (clearEx
-          ? "for (var _rk = _prop.numKeys; _rk >= 1; _rk--) {\n" +
-            "  _prop.removeKey(_rk);\n" +
-            "}\n"
-          : "") +
-        "var _kfs = " + kfArrayLiteral + ";\n" +
-        "for (var _ki = 0; _ki < _kfs.length; _ki++) {\n" +
-        "  var _kf = _kfs[_ki];\n" +
-        "  _prop.setValueAtTime(_kf.time, _kf.value);\n" +
-        "  if (_kf.interpolation) {\n" +
-        "    var _nki = _prop.nearestKeyIndex(_kf.time);\n" +
-        "    if (_kf.interpolation === 'linear') {\n" +
-        "      _prop.setInterpolationTypeAtKey(_nki, KeyframeInterpolationType.LINEAR, KeyframeInterpolationType.LINEAR);\n" +
-        "    } else if (_kf.interpolation === 'hold') {\n" +
-        "      _prop.setInterpolationTypeAtKey(_nki, KeyframeInterpolationType.HOLD, KeyframeInterpolationType.HOLD);\n" +
-        "    } else if (_kf.interpolation === 'bezier') {\n" +
-        "      _prop.setInterpolationTypeAtKey(_nki, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);\n" +
-        "    }\n" +
-        "  }\n" +
-        "}\n" +
-        "return {\n" +
-        "  success: true,\n" +
-        "  data: {\n" +
-        "    propertyName: _prop.name,\n" +
-        "    keyframesAdded: _kfs.length,\n" +
-        "    totalKeys: _prop.numKeys\n" +
-        "  }\n" +
-        "};\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(inner, "set_property_keyframes"));
-      return runScript(script, "set_property_keyframes");
-    }
-  );
-
-  // ── get_keyframes ───────────────────────────────────────────────────────────
-
-  server.tool(
-    "get_keyframes",
-    "Read all keyframes from a property including times, values, and interpolation types.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the target composition."),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer."),
-      propertyPath: PropertyPath,
-    },
-    async ({ compId, layerIndex, propertyPath }) => {
-      const inner =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        RESOLVE_PATH_FN +
-        "var _segments = " + JSON.stringify(propertyPath) + ";\n" +
-        "var _prop = _resolvePath(layer, _segments);\n" +
-        "if (!_prop) {\n" +
-        '  return { success: false, error: { message: "Property path not found.", code: "PROPERTY_NOT_FOUND" } };\n' +
-        "}\n" +
-        "if (_prop.propertyType !== PropertyType.PROPERTY) {\n" +
-        '  return { success: false, error: { message: "Path resolves to a group, not a property.", code: "NOT_A_PROPERTY" } };\n' +
-        "}\n" +
-        "function _interpStr(t) {\n" +
-        "  if (t === KeyframeInterpolationType.LINEAR) return 'LINEAR';\n" +
-        "  if (t === KeyframeInterpolationType.BEZIER) return 'BEZIER';\n" +
-        "  if (t === KeyframeInterpolationType.HOLD) return 'HOLD';\n" +
-        "  return 'UNKNOWN';\n" +
-        "}\n" +
-        "var _keyframes = [];\n" +
-        "for (var _ki = 1; _ki <= _prop.numKeys; _ki++) {\n" +
-        "  var _kv = _prop.keyValue(_ki);\n" +
-        "  if (_kv instanceof Array) {\n" +
-        "    var _arr = [];\n" +
-        "    for (var _ai = 0; _ai < _kv.length; _ai++) _arr.push(_kv[_ai]);\n" +
-        "    _kv = _arr;\n" +
-        "  }\n" +
-        "  _keyframes.push({\n" +
-        "    index: _ki,\n" +
-        "    time: _prop.keyTime(_ki),\n" +
-        "    value: _kv,\n" +
-        "    inInterpolation: _interpStr(_prop.keyInInterpolationType(_ki)),\n" +
-        "    outInterpolation: _interpStr(_prop.keyOutInterpolationType(_ki))\n" +
-        "  });\n" +
-        "}\n" +
-        "return {\n" +
-        "  success: true,\n" +
-        "  data: {\n" +
-        "    propertyName: _prop.name,\n" +
-        "    numKeys: _prop.numKeys,\n" +
-        "    keyframes: _keyframes\n" +
-        "  }\n" +
-        "};\n";
-
-      const script = wrapWithReturn(inner);
-      return runScript(script, "get_keyframes");
     }
   );
 }

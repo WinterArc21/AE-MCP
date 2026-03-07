@@ -2,7 +2,7 @@
 
 Canonical API reference for the shipped MCP tool surface.
 
-- Total tools: `118`
+- Total tools: `74`
 - Server version: `v2.0.0`
 - Source of truth: `src/tools/*.ts`
 
@@ -92,35 +92,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `loop?`
 - Returns/features: warnings array for unsupported interpretation fields
 
-### `create_folder`
-- Purpose: create a folder in the project panel
-- Args:
-- `name`
-- `parentFolderId?`
-- Returns/features: folder id/name and parent info
-
-### `move_project_item`
-- Purpose: move an item into another folder
-- Args:
-- `itemId`
-- `parentFolderId`
-- Returns/features: old/new parent info
-
-### `set_label_color`
-- Purpose: change a project item's label color
-- Args:
-- `itemId`
-- `label`: `0-16`
-- Returns/features: updated label index
-
-### `add_comment`
-- Purpose: set or append a project item comment
-- Args:
-- `itemId`
-- `comment`
-- `append?`
-- Returns/features: updated comment text
-
 ## Composition
 
 ### `create_composition`
@@ -164,27 +135,14 @@ Canonical API reference for the shipped MCP tool surface.
 - `bgColor?`
 - Returns/features: updated comp settings
 
-### `set_work_area`
-- Purpose: set work area start and duration
+### `set_all_keyframes_easing`
+- Purpose: set easing on all keyframes for a property
 - Args:
 - `compId`
-- `start`
-- `duration`
-- Returns/features: updated work area values
-
-### `set_comp_renderer`
-- Purpose: switch the composition renderer
-- Args:
-- `compId`
-- renderer selection value
-- Returns/features: active renderer after change
-
-### `set_motion_blur_settings`
-- Purpose: set comp-level motion blur settings
-- Args:
-- `compId`
-- shutter/sample-related fields
-- Returns/features: updated motion blur settings
+- `layerIndex`
+- `property`
+- `easingType`
+- Returns/features: bulk easing shortcut
 
 ## Layer Management
 
@@ -242,16 +200,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `name?`
 - Returns/features: new adjustment layer index/name
 
-### `add_comp_layer`
-- Purpose: add an existing comp as a layer
-- Args:
-- `compId`
-- `sourceCompId`
-- `name?`
-- `position?`
-- `startTime?`
-- Returns/features: nested comp layer details
-
 ### `list_layers`
 - Purpose: list layers in stacking order
 - Args:
@@ -296,22 +244,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `layerIndex`
 - Returns/features: new duplicate index/name
 
-### `set_layer_parent`
-- Purpose: parent or unparent a layer
-- Args:
-- `compId`
-- `childIndex`
-- `parentIndex`
-- Returns/features: parent relationship update
-
-### `reorder_layer`
-- Purpose: move a layer in stack order
-- Args:
-- `compId`
-- `layerIndex`
-- `newIndex`
-- Returns/features: actual new index
-
 ## Typography
 
 ### `list_fonts`
@@ -351,16 +283,6 @@ Canonical API reference for the shipped MCP tool surface.
 
 ## Animation & Keyframes
 
-### `add_keyframe`
-- Purpose: add one transform keyframe
-- Args:
-- `compId`
-- `layerIndex`
-- `property`
-- `time`
-- `value`
-- Returns/features: one keyframe placed on a transform property
-
 ### `add_keyframes_batch`
 - Purpose: add multiple keyframes to one transform property
 - Args:
@@ -370,16 +292,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `keyframes[]`
 - Returns/features: bulk keyframe creation
 
-### `set_keyframe_easing`
-- Purpose: set easing on one keyframe
-- Args:
-- `compId`
-- `layerIndex`
-- `property`
-- `keyframeIndex`
-- `easingType`
-- Returns/features: linear, ease-in, ease-out, ease-in-out, hold
-
 ### `set_all_keyframes_easing`
 - Purpose: set easing on all keyframes for a property
 - Args:
@@ -388,41 +300,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `property`
 - `easingType`
 - Returns/features: bulk easing shortcut
-
-### `remove_keyframes`
-- Purpose: clear all keyframes from a transform property
-- Args:
-- `compId`
-- `layerIndex`
-- `property`
-- Returns/features: property becomes static again
-
-### `get_keyframes`
-- Purpose: inspect keyframes on an arbitrary property path
-- Args:
-- `compId`
-- `layerIndex`
-- `propertyPath`
-- Returns/features: keyframe times, values, interpolation types
-
-### `set_time_remap`
-- Purpose: enable and control time remapping
-- Args:
-- `compId`
-- `layerIndex`
-- `enabled`
-- `keyframes?`
-- Returns/features: freeze, reverse, slow-mo, retiming workflows
-
-### `set_spatial_interpolation`
-- Purpose: set motion path shape
-- Args:
-- `compId`
-- `layerIndex`
-- `property`
-- `interpolationType`
-- `keyframeIndex?`
-- Returns/features: linear vs bezier path geometry
 
 ## Generic Properties
 
@@ -456,24 +333,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `clearKeyframes?`
 - Returns/features: scalar, vector, boolean, string support
 
-### `set_property_keyframes`
-- Purpose: keyframe any animatable layer property by path
-- Args:
-- `compId`
-- `layerIndex`
-- `propertyPath`
-- `keyframes[]`
-- `clearExisting?`
-- Returns/features: per-keyframe interpolation support
-
-### `get_text_bounds`
-- Purpose: measure layer bounds in comp space
-- Args:
-- `compId`
-- `layerIndex`
-- `time?`
-- Returns/features: source rect, comp-space bounds, safe-area flag
-
 ## Expressions
 
 ### `set_expression`
@@ -493,95 +352,7 @@ Canonical API reference for the shipped MCP tool surface.
 - `property`
 - Returns/features: falls back to keyframes/static value
 
-### `add_wiggle`
-- Purpose: convenience wiggle expression
-- Args:
-- `compId`
-- `layerIndex`
-- `property`
-- `frequency?`
-- `amplitude?`
-- Returns/features: organic motion helper
-
-### `add_loop`
-- Purpose: convenience loopOut expression
-- Args:
-- `compId`
-- `layerIndex`
-- `property`
-- `loopType`
-- `numKeyframes?`
-- Returns/features: cycle, pingpong, offset, continue
-
-### `link_properties`
-- Purpose: link one transform property to another
-- Args:
-- `compId`
-- `sourceLayerIndex`
-- `sourceProperty`
-- `targetLayerIndex`
-- `targetProperty`
-- Returns/features: expression-based property following
-
 ## Motion Design Presets
-
-### `apply_fade_in`
-- Purpose: opacity fade-in preset
-- Args:
-- `compId`
-- `layerIndex`
-- `duration?`
-- `startTime?`
-
-### `apply_fade_out`
-- Purpose: opacity fade-out preset
-- Args:
-- `compId`
-- `layerIndex`
-- `duration?`
-- `endTime?`
-
-### `apply_slide_in`
-- Purpose: slide-in preset
-- Args:
-- `compId`
-- `layerIndex`
-- `direction`
-- `distance?`
-- `duration?`
-- `startTime?`
-
-### `apply_scale_in`
-- Purpose: scale-in preset
-- Args:
-- `compId`
-- `layerIndex`
-- `fromScale?`
-- `duration?`
-- `startTime?`
-
-### `apply_bounce_in`
-- Purpose: springy bounce-in preset
-- Args:
-- `compId`
-- `layerIndex`
-- `duration?`
-- `startTime?`
-
-### `apply_typewriter`
-- Purpose: character reveal preset
-- Args:
-- `compId`
-- `layerIndex`
-- `duration?`
-- `startTime?`
-
-### `apply_color_theme`
-- Purpose: create color controls for a comp-wide palette
-- Args:
-- `compId`
-- palette colors
-- Returns/features: color theme null with expression controls
 
 ### `create_scene`
 - Purpose: batch-create a simple scene
@@ -627,21 +398,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `effectIndex?`
 - `effectName?`
 
-### `list_layer_effects`
-- Purpose: list all effects on a layer
-- Args:
-- `compId`
-- `layerIndex`
-
-### `get_effect_docs`
-- Purpose: read bundled effect docs
-- Args:
-- `effectName`
-
-### `list_available_effects`
-- Purpose: list common AE effects and match names
-- Args: none
-
 ## Compositing
 
 ### `set_blend_mode`
@@ -650,19 +406,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `compId`
 - `layerIndex`
 - `blendMode`
-
-### `get_blend_mode`
-- Purpose: inspect layer blend mode
-- Args:
-- `compId`
-- `layerIndex`
-
-### `set_track_matte`
-- Purpose: set alpha or luma matte relationship
-- Args:
-- `compId`
-- `layerIndex`
-- `trackMatteType`
 
 ## Masks
 
@@ -681,12 +424,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `opacity?`
 - `expansion?`
 - `mode?`
-
-### `list_masks`
-- Purpose: list masks on a layer
-- Args:
-- `compId`
-- `layerIndex`
 
 ### `set_mask_properties`
 - Purpose: edit mask settings
@@ -712,13 +449,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `closed?`
 - `time?`
 - Returns/features: tangent-length validation before scripting
-
-### `delete_mask`
-- Purpose: delete a mask
-- Args:
-- `compId`
-- `layerIndex`
-- `maskIndex`
 
 ## 3D
 
@@ -761,45 +491,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `yRotation?`
 - `zRotation?`
 
-### `set_camera_options`
-- Purpose: edit camera options
-- Args:
-- `compId`
-- `layerIndex`
-- `zoom?`
-- `depthOfField?`
-- `focusDistance?`
-- `aperture?`
-- `blurLevel?`
-
-### `set_light_options`
-- Purpose: edit light options
-- Args:
-- `compId`
-- `layerIndex`
-- `intensity?`
-- `color?`
-- `coneAngle?`
-- `coneFeather?`
-- `castsShadows?`
-- `shadowDarkness?`
-- `shadowDiffusion?`
-
-### `set_material_options`
-- Purpose: edit material response on a 3D layer
-- Args:
-- `compId`
-- `layerIndex`
-- `acceptsLights?`
-- `acceptsShadows?`
-- `ambient?`
-- `diffuse?`
-- `specularIntensity?`
-- `specularShininess?`
-- `metal?`
-- `lightTransmission?`
-- Returns/features: reports `requested`, `applied`, and `warnings`
-
 ## Text Animators
 
 ### `add_text_animator`
@@ -821,26 +512,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `animatorIndex`
 - `property`
 - `value`
-
-### `list_text_animators`
-- Purpose: list text animators on a layer
-- Args:
-- `compId`
-- `layerIndex`
-- Returns/features: animator properties plus selector settings
-
-### `set_text_selector`
-- Purpose: edit a text animator's range selector
-- Args:
-- `compId`
-- `layerIndex`
-- `animatorIndex`
-- `selectorIndex?`
-- `start?`
-- `end?`
-- `offset?`
-- `amount?`
-- `basedOn?`
 
 ## Shape Paths
 
@@ -901,54 +572,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `scale?`
 - `rotation?`
 
-### `add_wiggle_paths`
-- Purpose: add Wiggle Paths
-- Args:
-- `compId`
-- `layerIndex`
-- `size`
-- `detail`
-- `points?`
-
-### `add_merge_paths`
-- Purpose: add Merge Paths
-- Args:
-- `compId`
-- `layerIndex`
-- `mode`
-
-### `add_offset_paths`
-- Purpose: add Offset Paths
-- Args:
-- `compId`
-- `layerIndex`
-- `amount`
-- `lineJoin?`
-- `miterLimit?`
-
-### `add_pucker_bloat`
-- Purpose: add Pucker & Bloat
-- Args:
-- `compId`
-- `layerIndex`
-- `amount`
-
-### `add_zig_zag`
-- Purpose: add Zig Zag
-- Args:
-- `compId`
-- `layerIndex`
-- `size`
-- `ridgesPerSegment`
-- `points?`
-
-### `add_twist`
-- Purpose: add Twist
-- Args:
-- `compId`
-- `layerIndex`
-- `angle`
-
 ## Pre-compositions
 
 ### `precompose_layers`
@@ -977,12 +600,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `duration?`
 - `label?`
 
-### `list_markers`
-- Purpose: list markers on a comp or layer
-- Args:
-- `compId`
-- `layerIndex?`
-
 ## Layer Settings
 
 ### `set_layer_quality`
@@ -992,14 +609,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `layerIndex`
 - `quality?`
 - `samplingQuality?`
-
-### `set_motion_blur`
-- Purpose: toggle motion blur
-- Args:
-- `compId`
-- `enabled`
-- `layerIndex?`
-- Returns/features: can set comp-level only or comp+layer together
 
 ### `set_layer_timing`
 - Purpose: set in/out/start/stretch
@@ -1011,18 +620,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `startTime?`
 - `stretch?`
 
-### `set_layer_flags`
-- Purpose: set boolean layer flags
-- Args:
-- `compId`
-- `layerIndex`
-- `shy?`
-- `solo?`
-- `locked?`
-- `guide?`
-- `collapseTransformation?`
-- `frameBlending?`
-
 ## Rendering & Preview
 
 ### `add_to_render_queue`
@@ -1031,23 +628,6 @@ Canonical API reference for the shipped MCP tool surface.
 - `compId`
 - `outputPath`
 - `format?`
-
-### `list_render_templates`
-- Purpose: list available render and output templates
-- Args: none
-
-### `set_render_item_settings`
-- Purpose: set render settings on a queued item
-- Args:
-- render item selector
-- template/settings fields
-
-### `set_output_module_settings`
-- Purpose: set output module settings on a queued item
-- Args:
-- render item selector
-- output module selector
-- template/settings/path fields
 
 ### `get_render_status`
 - Purpose: read render queue statuses
@@ -1094,3 +674,67 @@ Canonical API reference for the shipped MCP tool surface.
 - Args:
 - `sceneType` — e.g. 'lower-third-corporate', 'title-card-cinematic', 'kinetic-typography'
 - Returns/features: JSON with exact tool calls and parameters using $compId/$layerIndex_N placeholders; lists available examples when scene type not found
+
+## Compound Tools
+
+### `position_layer_semantic`
+- Purpose: position a layer using semantic location names instead of pixel coordinates
+- Args:
+- `compId`
+- `layerIndex`
+- `position` — one of: center, top-left, top-center, top-right, bottom-left, bottom-center, bottom-right, left-center, right-center, lower-third, upper-third, title-safe-center
+- `margin?` — pixel margin from edges (default 48)
+
+### `apply_text_style`
+- Purpose: apply professional typography (font, size, tracking, color) to a text layer based on its role and style
+- Args:
+- `compId`
+- `layerIndex`
+- `role` — one of: title, subtitle, body, caption, label, accent
+- `style?` — one of: corporate, cinematic, minimal, bold, editorial (default corporate)
+- `color?` — RGB array [0-1]
+- `fontOverride?`
+
+### `apply_overshoot`
+- Purpose: add elastic/bounce/spring overshoot expression to any animated property
+- Args:
+- `compId`
+- `layerIndex`
+- `property` — e.g. "Position", "Scale", "Rotation", "Opacity"
+- `type?` — elastic (default), bounce, spring
+- `intensity?` — 0.0-1.0 (default 0.5)
+
+### `animate_entrance`
+- Purpose: animate a layer entering the scene with professional easing and timing
+- Args:
+- `compId`
+- `layerIndex`
+- `preset` — fade, slide-up, slide-left, slide-right, slide-down, scale, scale-rotate, pop, drop, typewriter
+- `startTime?`
+- `duration?`
+- `overshoot?` — default true for pop/scale/drop
+- `easing?` — smooth (default), snappy, heavy, elastic
+- `style?` — corporate, cinematic, energetic, minimal
+
+### `animate_exit`
+- Purpose: animate a layer leaving the scene
+- Args:
+- `compId`
+- `layerIndex`
+- `preset` — fade, slide-up, slide-left, slide-right, slide-down, scale, scale-rotate, shrink, drop-out
+- `endTime?`
+- `duration?`
+- `easing?`
+- `style?`
+
+### `stagger_animation`
+- Purpose: apply entrance animation to multiple layers with staggered timing (cascading reveal)
+- Args:
+- `compId`
+- `layerIndices` — array of layer indices
+- `preset` — same as animate_entrance
+- `staggerDelay?` — seconds between each layer (default 0.08)
+- `duration?`
+- `easing?`
+- `style?`
+- `direction?` — forward (default), reverse, center-out, random

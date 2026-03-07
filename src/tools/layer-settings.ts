@@ -43,63 +43,6 @@ async function runScript(script: string, toolName: string) {
 // ---------------------------------------------------------------------------
 
 export function registerLayerSettingsTools(server: McpServer): void {
-
-  // ─── set_motion_blur ──────────────────────────────────────────────────────────
-  server.tool(
-    "set_motion_blur",
-    "Enable or disable motion blur for a layer and/or the composition-level motion blur switch. " +
-      "Motion blur samples a layer at multiple sub-frame positions to simulate camera shutter blur on moving objects. " +
-      "BOTH switches must be on for motion blur to render: the comp-level switch (the camera icon in the toolbar) " +
-      "AND the per-layer switch. This tool sets both at once. " +
-      "If layerIndex is omitted, only the composition-level switch is toggled. " +
-      "Motion blur significantly increases render time — use on key animated elements only. " +
-      "The composition's Shutter Angle (0-720°) controls the blur amount — set via set_composition_settings. " +
-      "180° shutter = natural film look; 360° = heavy blur.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      enabled: z
-        .boolean()
-        .describe("true = enable motion blur, false = disable"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("1-based index of the layer. If omitted, only the comp-level switch is set"),
-    },
-    async ({ compId, enabled, layerIndex }) => {
-      const boolVal = enabled ? "true" : "false";
-
-      let body: string;
-
-      if (layerIndex !== undefined) {
-        body =
-          findCompById("comp", compId) +
-          findLayerByIndex("layer", "comp", layerIndex) +
-          "comp.motionBlur = " + boolVal + ";\n" +
-          "layer.motionBlur = " + boolVal + ";\n" +
-          "return { success: true, data: { compMotionBlur: " + boolVal + ", layerIndex: " + layerIndex + ", layerName: layer.name, layerMotionBlur: " + boolVal + " } };\n";
-      } else {
-        body =
-          findCompById("comp", compId) +
-          "comp.motionBlur = " + boolVal + ";\n" +
-          "return { success: true, data: { compMotionBlur: " + boolVal + " } };\n";
-      }
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_motion_blur"));
-
-      try {
-        return runScript(script, "set_motion_blur");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
-
   // ─── set_layer_timing ────────────────────────────────────────────────────────
   server.tool(
     "set_layer_timing",
@@ -161,90 +104,6 @@ export function registerLayerSettingsTools(server: McpServer): void {
 
       try {
         return runScript(script, "set_layer_timing");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
-
-  // ─── set_layer_flags ─────────────────────────────────────────────────────────
-  server.tool(
-    "set_layer_flags",
-    "Set boolean flags on a layer. All parameters are optional — only the ones provided will be changed. " +
-      "shy: hides the layer from the timeline when the comp's 'Hide Shy Layers' is active — " +
-      "  useful for decluttering complex timelines without deleting layers. " +
-      "solo: isolates this layer so only solo'd layers render — " +
-      "  use to focus on one layer during animation work. " +
-      "locked: prevents any edits to the layer (property changes, moves, etc.). " +
-      "guide: makes the layer a guide layer — visible in the comp panel but not in renders. " +
-      "  Guide layers are shown in the Project panel as a guide layer when not in render mode. " +
-      "collapseTransformation: for pre-comp layers, passes the nested comp's 3D data and blending modes " +
-      "  directly to the parent comp — required for 3D layers inside a pre-comp to interact with " +
-      "  3D layers in the parent. Also used with vector EPS/AI layers for continuous rasterization. " +
-      "frameBlending: enables frame blending for footage layers with retimed speed (stretch != 100). " +
-      "  Smooths motion by blending adjacent frames together.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer"),
-      shy: z
-        .boolean()
-        .optional()
-        .describe("Hide the layer when 'Hide Shy Layers' is active in the comp"),
-      solo: z
-        .boolean()
-        .optional()
-        .describe("Solo the layer (only solo'd layers render in preview)"),
-      locked: z
-        .boolean()
-        .optional()
-        .describe("Lock the layer to prevent accidental edits"),
-      guide: z
-        .boolean()
-        .optional()
-        .describe("Make this a guide layer (visible in comp panel but not in final renders)"),
-      collapseTransformation: z
-        .boolean()
-        .optional()
-        .describe("Enable Collapse Transformations / Continuous Rasterize — required for 3D layers inside pre-comps to interact with the parent comp's 3D space"),
-      frameBlending: z
-        .boolean()
-        .optional()
-        .describe("Enable frame blending for time-stretched footage layers"),
-    },
-    async ({ compId, layerIndex, shy, solo, locked, guide, collapseTransformation, frameBlending }) => {
-      let setLines = "";
-      if (shy                     !== undefined) setLines += "layer.shy = " + (shy ? "true" : "false") + ";\n";
-      if (solo                    !== undefined) setLines += "layer.solo = " + (solo ? "true" : "false") + ";\n";
-      if (locked                  !== undefined) setLines += "layer.locked = " + (locked ? "true" : "false") + ";\n";
-      if (guide                   !== undefined) setLines += "layer.guideLayer = " + (guide ? "true" : "false") + ";\n";
-      if (collapseTransformation  !== undefined) setLines += "layer.collapseTransformation = " + (collapseTransformation ? "true" : "false") + ";\n";
-      if (frameBlending           !== undefined) {
-        // frameBlendingType: FRAME_MIX or PIXEL_MOTION; setting enabled just sets it to FRAME_MIX by default
-        if (frameBlending) {
-          setLines += "layer.frameBlendingType = FrameBlendingType.FRAME_MIX;\n";
-        } else {
-          setLines += "layer.frameBlendingType = FrameBlendingType.NO_FRAME_BLEND;\n";
-        }
-      }
-
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        setLines +
-        "return { success: true, data: { layerIndex: " + layerIndex + ", layerName: layer.name, shy: layer.shy, solo: layer.solo, locked: layer.locked } };\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_layer_flags"));
-
-      try {
-        return runScript(script, "set_layer_flags");
       } catch (err) {
         return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
       }
@@ -324,4 +183,82 @@ export function registerLayerSettingsTools(server: McpServer): void {
       }
     }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Demoted helpers (formerly server.tool registrations)
+// ---------------------------------------------------------------------------
+
+export async function setMotionBlurHelper(params: {
+  compId: number;
+  enabled: boolean;
+  layerIndex?: number;
+}) {
+  const { compId, enabled, layerIndex } = params;
+  const boolVal = enabled ? "true" : "false";
+
+  let body: string;
+
+  if (layerIndex !== undefined) {
+    body =
+      findCompById("comp", compId) +
+      findLayerByIndex("layer", "comp", layerIndex) +
+      "comp.motionBlur = " + boolVal + ";\n" +
+      "layer.motionBlur = " + boolVal + ";\n" +
+      "return { success: true, data: { compMotionBlur: " + boolVal + ", layerIndex: " + layerIndex + ", layerName: layer.name, layerMotionBlur: " + boolVal + " } };\n";
+  } else {
+    body =
+      findCompById("comp", compId) +
+      "comp.motionBlur = " + boolVal + ";\n" +
+      "return { success: true, data: { compMotionBlur: " + boolVal + " } };\n";
+  }
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_motion_blur"));
+
+  try {
+    return runScript(script, "set_motion_blur");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function setLayerFlagsHelper(params: {
+  compId: number;
+  layerIndex: number;
+  shy?: boolean;
+  solo?: boolean;
+  locked?: boolean;
+  guide?: boolean;
+  collapseTransformation?: boolean;
+  frameBlending?: boolean;
+}) {
+  const { compId, layerIndex, shy, solo, locked, guide, collapseTransformation, frameBlending } = params;
+  let setLines = "";
+  if (shy                     !== undefined) setLines += "layer.shy = " + (shy ? "true" : "false") + ";\n";
+  if (solo                    !== undefined) setLines += "layer.solo = " + (solo ? "true" : "false") + ";\n";
+  if (locked                  !== undefined) setLines += "layer.locked = " + (locked ? "true" : "false") + ";\n";
+  if (guide                   !== undefined) setLines += "layer.guideLayer = " + (guide ? "true" : "false") + ";\n";
+  if (collapseTransformation  !== undefined) setLines += "layer.collapseTransformation = " + (collapseTransformation ? "true" : "false") + ";\n";
+  if (frameBlending           !== undefined) {
+    // frameBlendingType: FRAME_MIX or PIXEL_MOTION; setting enabled just sets it to FRAME_MIX by default
+    if (frameBlending) {
+      setLines += "layer.frameBlendingType = FrameBlendingType.FRAME_MIX;\n";
+    } else {
+      setLines += "layer.frameBlendingType = FrameBlendingType.NO_FRAME_BLEND;\n";
+    }
+  }
+
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    setLines +
+    "return { success: true, data: { layerIndex: " + layerIndex + ", layerName: layer.name, shy: layer.shy, solo: layer.solo, locked: layer.locked } };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_layer_flags"));
+
+  try {
+    return runScript(script, "set_layer_flags");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
 }

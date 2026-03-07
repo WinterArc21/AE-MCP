@@ -428,191 +428,135 @@ export function registerProjectItemTools(server: McpServer): void {
       return runScript(script, "interpret_footage");
     }
   );
+}
 
-  // ─── create_folder ──────────────────────────────────────────────────────
-  server.tool(
-    "create_folder",
-    "Create a new folder in the project panel for organizing items. " +
-      "Optionally place it inside an existing folder.",
-    {
-      name: z
-        .string()
-        .min(1)
-        .describe("Name of the new folder"),
-      parentFolderId: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("ID of a parent folder to nest this folder inside"),
-    },
-    async ({ name, parentFolderId }) => {
-      let folderValidation = "";
-      let folderBlock = "";
-      if (parentFolderId !== undefined) {
-        folderValidation =
-          FIND_ITEM_BY_ID +
-          "var _parent = _findItemById(" + parentFolderId + ");\n" +
-          "if (!_parent || !(_parent instanceof FolderItem)) {\n" +
-          '  return { success: false, error: { message: "Folder not found with id: ' + parentFolderId + '", code: "FOLDER_NOT_FOUND" } };\n' +
-          "}\n";
-        folderBlock = "_folder.parentFolder = _parent;\n";
-      }
+// ---------------------------------------------------------------------------
+// Demoted helpers (formerly server.tool registrations)
+// ---------------------------------------------------------------------------
 
-      const body =
-        folderValidation +
-        'var _folder = app.project.items.addFolder("' + escapeString(name) + '");\n' +
-        folderBlock +
-        "var _parentId = null;\n" +
-        "var _parentName = null;\n" +
-        "if (_folder.parentFolder) {\n" +
-        "  _parentId = _folder.parentFolder.id;\n" +
-        "  _parentName = _folder.parentFolder.name;\n" +
-        "}\n" +
-        "return { success: true, data: {\n" +
-        "  itemId: _folder.id,\n" +
-        "  name: _folder.name,\n" +
-        "  parentFolderId: _parentId,\n" +
-        "  parentFolderName: _parentName\n" +
-        "} };\n";
+export async function createFolderHelper(params: {
+  name: string;
+  parentFolderId?: number;
+}) {
+  const { name, parentFolderId } = params;
+  let folderValidation = "";
+  let folderBlock = "";
+  if (parentFolderId !== undefined) {
+    folderValidation =
+      FIND_ITEM_BY_ID +
+      "var _parent = _findItemById(" + parentFolderId + ");\n" +
+      "if (!_parent || !(_parent instanceof FolderItem)) {\n" +
+      "  return { success: false, error: { message: \"Folder not found with id: " + parentFolderId + "\", code: \"FOLDER_NOT_FOUND\" } };\n" +
+      "}\n";
+    folderBlock = "_folder.parentFolder = _parent;\n";
+  }
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "create_folder"));
-      return runScript(script, "create_folder");
-    }
-  );
+  const body =
+    folderValidation +
+    "var _folder = app.project.items.addFolder(\"" + escapeString(name) + "\");\n" +
+    folderBlock +
+    "var _parentId = null;\n" +
+    "var _parentName = null;\n" +
+    "if (_folder.parentFolder) {\n" +
+    "  _parentId = _folder.parentFolder.id;\n" +
+    "  _parentName = _folder.parentFolder.name;\n" +
+    "}\n" +
+    "return { success: true, data: {\n" +
+    "  itemId: _folder.id,\n" +
+    "  name: _folder.name,\n" +
+    "  parentFolderId: _parentId,\n" +
+    "  parentFolderName: _parentName\n" +
+    "} };\n";
 
-  // ─── move_project_item ──────────────────────────────────────────────────
-  server.tool(
-    "move_project_item",
-    "Move a project item into a different folder in the project panel.",
-    {
-      itemId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the item to move"),
-      parentFolderId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the destination folder"),
-    },
-    async ({ itemId, parentFolderId }) => {
-      const body =
-        FIND_ITEM_BY_ID +
-        "var _item = _findItemById(" + itemId + ");\n" +
-        "if (!_item) {\n" +
-        '  return { success: false, error: { message: "Item not found with id: ' + itemId + '", code: "ITEM_NOT_FOUND" } };\n' +
-        "}\n" +
-        "var _folder = _findItemById(" + parentFolderId + ");\n" +
-        "if (!_folder || !(_folder instanceof FolderItem)) {\n" +
-        '  return { success: false, error: { message: "Folder not found with id: ' + parentFolderId + '", code: "FOLDER_NOT_FOUND" } };\n' +
-        "}\n" +
-        "var _oldParentId = _item.parentFolder ? _item.parentFolder.id : null;\n" +
-        "_item.parentFolder = _folder;\n" +
-        "return { success: true, data: {\n" +
-        "  itemId: _item.id,\n" +
-        "  itemName: _item.name,\n" +
-        "  oldParentFolderId: _oldParentId,\n" +
-        "  newParentFolderId: _folder.id,\n" +
-        "  newParentFolderName: _folder.name\n" +
-        "} };\n";
+  const script = wrapWithReturn(wrapInUndoGroup(body, "create_folder"));
+  return runScript(script, "create_folder");
+}
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "move_project_item"));
-      return runScript(script, "move_project_item");
-    }
-  );
+export async function moveProjectItemHelper(params: {
+  itemId: number;
+  parentFolderId: number;
+}) {
+  const { itemId, parentFolderId } = params;
+  const body =
+    FIND_ITEM_BY_ID +
+    "var _item = _findItemById(" + itemId + ");\n" +
+    "if (!_item) {\n" +
+    "  return { success: false, error: { message: \"Item not found with id: " + itemId + "\", code: \"ITEM_NOT_FOUND\" } };\n" +
+    "}\n" +
+    "var _folder = _findItemById(" + parentFolderId + ");\n" +
+    "if (!_folder || !(_folder instanceof FolderItem)) {\n" +
+    "  return { success: false, error: { message: \"Folder not found with id: " + parentFolderId + "\", code: \"FOLDER_NOT_FOUND\" } };\n" +
+    "}\n" +
+    "var _oldParentId = _item.parentFolder ? _item.parentFolder.id : null;\n" +
+    "_item.parentFolder = _folder;\n" +
+    "return { success: true, data: {\n" +
+    "  itemId: _item.id,\n" +
+    "  itemName: _item.name,\n" +
+    "  oldParentFolderId: _oldParentId,\n" +
+    "  newParentFolderId: _folder.id,\n" +
+    "  newParentFolderName: _folder.name\n" +
+    "} };\n";
 
-  // ─── set_label_color ────────────────────────────────────────────────────
-  server.tool(
-    "set_label_color",
-    "Set the label color index on a project item. " +
-      "AE uses numeric labels 0-16: 0=None, 1=Red, 2=Yellow, 3=Aqua, 4=Pink, " +
-      "5=Lavender, 6=Peach, 7=Sea Foam, 8=Blue, 9=Green, 10=Purple, " +
-      "11=Orange, 12=Brown, 13=Fuchsia, 14=Cyan, 15=Sandstone, 16=DarkGreen.",
-    {
-      itemId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the project item"),
-      label: z
-        .number()
-        .int()
-        .min(0)
-        .max(16)
-        .describe("Label color index 0-16 (0=None, 1=Red, 2=Yellow, etc.)"),
-    },
-    async ({ itemId, label }) => {
-      const body =
-        FIND_ITEM_BY_ID +
-        "var _item = _findItemById(" + itemId + ");\n" +
-        "if (!_item) {\n" +
-        '  return { success: false, error: { message: "Item not found with id: ' + itemId + '", code: "ITEM_NOT_FOUND" } };\n' +
-        "}\n" +
-        "_item.label = " + label + ";\n" +
-        "return { success: true, data: {\n" +
-        "  itemId: _item.id,\n" +
-        "  itemName: _item.name,\n" +
-        "  label: _item.label\n" +
-        "} };\n";
+  const script = wrapWithReturn(wrapInUndoGroup(body, "move_project_item"));
+  return runScript(script, "move_project_item");
+}
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_label_color"));
-      return runScript(script, "set_label_color");
-    }
-  );
+export async function setLabelColorHelper(params: {
+  itemId: number;
+  label: number;
+}) {
+  const { itemId, label } = params;
+  const body =
+    FIND_ITEM_BY_ID +
+    "var _item = _findItemById(" + itemId + ");\n" +
+    "if (!_item) {\n" +
+    "  return { success: false, error: { message: \"Item not found with id: " + itemId + "\", code: \"ITEM_NOT_FOUND\" } };\n" +
+    "}\n" +
+    "_item.label = " + label + ";\n" +
+    "return { success: true, data: {\n" +
+    "  itemId: _item.id,\n" +
+    "  itemName: _item.name,\n" +
+    "  label: _item.label\n" +
+    "} };\n";
 
-  // ─── add_comment ────────────────────────────────────────────────────────
-  server.tool(
-    "add_comment",
-    "Set or append a comment on a project item. " +
-      "Comments are visible in the project panel's Comment column.",
-    {
-      itemId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the project item"),
-      comment: z
-        .string()
-        .describe("Comment text to set or append"),
-      append: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe("If true, append to existing comment instead of replacing"),
-    },
-    async ({ itemId, comment, append }) => {
-      const commentEscaped = escapeString(comment);
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_label_color"));
+  return runScript(script, "set_label_color");
+}
 
-      let setLine: string;
-      if (append) {
-        setLine =
-          "var _existing = _item.comment;\n" +
-          'if (_existing && _existing.length > 0) {\n' +
-          '  _item.comment = _existing + "\\n" + "' + commentEscaped + '";\n' +
-          "} else {\n" +
-          '  _item.comment = "' + commentEscaped + '";\n' +
-          "}\n";
-      } else {
-        setLine = '_item.comment = "' + commentEscaped + '";\n';
-      }
+export async function addCommentHelper(params: {
+  itemId: number;
+  comment: string;
+  append?: boolean;
+}) {
+  const { itemId, comment, append } = params;
+  const commentEscaped = escapeString(comment);
 
-      const body =
-        FIND_ITEM_BY_ID +
-        "var _item = _findItemById(" + itemId + ");\n" +
-        "if (!_item) {\n" +
-        '  return { success: false, error: { message: "Item not found with id: ' + itemId + '", code: "ITEM_NOT_FOUND" } };\n' +
-        "}\n" +
-        setLine +
-        "return { success: true, data: {\n" +
-        "  itemId: _item.id,\n" +
-        "  itemName: _item.name,\n" +
-        "  comment: _item.comment\n" +
-        "} };\n";
+  let setLine: string;
+  if (append) {
+    setLine =
+      "var _existing = _item.comment;\n" +
+      "if (_existing && _existing.length > 0) {\n" +
+      "  _item.comment = _existing + \"\\n\" + \"" + commentEscaped + "\";\n" +
+      "} else {\n" +
+      "  _item.comment = \"" + commentEscaped + "\";\n" +
+      "}\n";
+  } else {
+    setLine = "_item.comment = \"" + commentEscaped + "\";\n";
+  }
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "add_comment"));
-      return runScript(script, "add_comment");
-    }
-  );
+  const body =
+    FIND_ITEM_BY_ID +
+    "var _item = _findItemById(" + itemId + ");\n" +
+    "if (!_item) {\n" +
+    "  return { success: false, error: { message: \"Item not found with id: " + itemId + "\", code: \"ITEM_NOT_FOUND\" } };\n" +
+    "}\n" +
+    setLine +
+    "return { success: true, data: {\n" +
+    "  itemId: _item.id,\n" +
+    "  itemName: _item.name,\n" +
+    "  comment: _item.comment\n" +
+    "} };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "add_comment"));
+  return runScript(script, "add_comment");
 }

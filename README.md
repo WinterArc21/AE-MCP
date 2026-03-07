@@ -2,7 +2,7 @@
 
 AI-powered motion design automation for Adobe After Effects. Connect Claude, Cursor, or any MCP-compatible AI assistant directly to After Effects.
 
-**v2.0.0** - 120 tools across 22 modules, agent knowledge base, and Cursor AI integration.
+**v2.0.0** - 74 tools across 23 modules, agent knowledge base, and Cursor AI integration.
 
 ## How it works
 
@@ -82,33 +82,34 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 
 ## Available Tools
 
-`ae-mcp` currently ships **120 tools across 22 modules**.
+`ae-mcp` currently ships **74 tools across 23 modules**.
 
 For the full copy-paste API reference, see [TOOLS.md](TOOLS.md).
 
 ### Tool Modules
 - Project Management: 5 tools
-- Project Items & Assets: 9 tools
-- Composition: 8 tools
-- Layer Management: 13 tools
-- Typography: 3 tools
-- Animation & Keyframes: 8 tools
-- Generic Properties: 5 tools
-- Expressions: 5 tools
-- Motion Design Presets: 8 tools
-- Effects: 7 tools
-- Compositing: 3 tools
-- Masks: 5 tools
-- 3D: 7 tools
-- Text Animators: 4 tools
+- Project Items & Assets: 5 tools
+- Composition: 6 tools
+- Layer Management: 10 tools
+- Typography: 2 tools
+- Animation & Keyframes: 2 tools
+- Generic Properties: 3 tools
+- Expressions: 2 tools
+- Motion Design Presets: 1 tool
+- Effects: 4 tools
+- Compositing: 1 tool
+- Masks: 3 tools
+- 3D: 4 tools
+- Text Animators: 2 tools
 - Shape Paths: 3 tools
-- Shape Operations: 8 tools
+- Shape Operations: 2 tools
 - Pre-compositions: 2 tools
-- Markers: 2 tools
-- Layer Settings: 4 tools
-- Rendering & Preview: 8 tools
+- Markers: 1 tool
+- Layer Settings: 2 tools
+- Rendering & Preview: 5 tools
 - Scripting: 1 tool
 - Design Knowledge: 2 tools
+- Compound Tools: 6 tools
 
 ### Recommended Entry Points
 - Scene building: `create_composition`, `add_text_layer`, `add_shape_layer`, `create_scene`

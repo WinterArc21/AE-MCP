@@ -388,187 +388,144 @@ export function registerRenderTools(server: McpServer): void {
       }
     }
   );
+}
 
-  // ─── list_render_templates ─────────────────────────────────────────────
-  server.tool(
-    "list_render_templates",
-    "List available render settings and output module templates. " +
-      "Returns template names that can be used with set_render_item_settings and set_output_module_settings.",
-    {},
-    async () => {
-      const body =
-        "var _rq = app.project.renderQueue;\n" +
-        "var _rqItem = null;\n" +
-        "var _tempAdded = false;\n" +
-        "var __result = null;\n" +
-        "try {\n" +
-        "  if (_rq.numItems > 0) {\n" +
-        "    _rqItem = _rq.item(1);\n" +
-        "  } else {\n" +
-        "    var _tmpComp = null;\n" +
-        "    for (var _ti = 1; _ti <= app.project.numItems; _ti++) {\n" +
-        "      if (app.project.item(_ti) instanceof CompItem) {\n" +
-        "        _tmpComp = app.project.item(_ti);\n" +
-        "        break;\n" +
-        "      }\n" +
-        "    }\n" +
-        "    if (!_tmpComp) {\n" +
-        "      __result = { success: false, error: { message: \"No compositions in project to enumerate templates.\", code: \"NO_COMPS\" } };\n" +
-        "    } else {\n" +
-        "      _rqItem = _rq.items.add(_tmpComp);\n" +
-        "      _tempAdded = true;\n" +
-        "    }\n" +
-        "  }\n" +
-        "  if (!__result) {\n" +
-        "    var _rsTemplates = _rqItem.templates;\n" +
-        "    var _omTemplates = _rqItem.outputModule(1).templates;\n" +
-        "    var _rsArr = [];\n" +
-        "    for (var _rsi = 0; _rsi < _rsTemplates.length; _rsi++) {\n" +
-        "      _rsArr.push(_rsTemplates[_rsi]);\n" +
-        "    }\n" +
-        "    var _omArr = [];\n" +
-        "    for (var _omi = 0; _omi < _omTemplates.length; _omi++) {\n" +
-        "      _omArr.push(_omTemplates[_omi]);\n" +
-        "    }\n" +
-        "    __result = { success: true, data: { renderSettingsTemplates: _rsArr, outputModuleTemplates: _omArr } };\n" +
-        "  }\n" +
-        "} finally {\n" +
-        "  if (_tempAdded && _rqItem) {\n" +
-        "    try { _rqItem.remove(); } catch (_cleanupErr) {}\n" +
-        "  }\n" +
-        "}\n" +
-        "return __result;\n";
+// ---------------------------------------------------------------------------
+// Demoted helpers (formerly server.tool registrations)
+// ---------------------------------------------------------------------------
 
-      const script = wrapWithReturn(body);
-      try {
-        return runScript(script, "list_render_templates");
-      } catch (err) {
-        return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+export async function listRenderTemplatesHelper(_params: Record<string, never> = {}) {
+  const body =
+    "var _rq = app.project.renderQueue;\n" +
+    "var _rqItem = null;\n" +
+    "var _tempAdded = false;\n" +
+    "var __result = null;\n" +
+    "try {\n" +
+    "  if (_rq.numItems > 0) {\n" +
+    "    _rqItem = _rq.item(1);\n" +
+    "  } else {\n" +
+    "    var _tmpComp = null;\n" +
+    "    for (var _ti = 1; _ti <= app.project.numItems; _ti++) {\n" +
+    "      if (app.project.item(_ti) instanceof CompItem) {\n" +
+    "        _tmpComp = app.project.item(_ti);\n" +
+    "        break;\n" +
+    "      }\n" +
+    "    }\n" +
+    "    if (!_tmpComp) {\n" +
+    "      __result = { success: false, error: { message: \"No compositions in project to enumerate templates.\", code: \"NO_COMPS\" } };\n" +
+    "    } else {\n" +
+    "      _rqItem = _rq.items.add(_tmpComp);\n" +
+    "      _tempAdded = true;\n" +
+    "    }\n" +
+    "  }\n" +
+    "  if (!__result) {\n" +
+    "    var _rsTemplates = _rqItem.templates;\n" +
+    "    var _omTemplates = _rqItem.outputModule(1).templates;\n" +
+    "    var _rsArr = [];\n" +
+    "    for (var _rsi = 0; _rsi < _rsTemplates.length; _rsi++) {\n" +
+    "      _rsArr.push(_rsTemplates[_rsi]);\n" +
+    "    }\n" +
+    "    var _omArr = [];\n" +
+    "    for (var _omi = 0; _omi < _omTemplates.length; _omi++) {\n" +
+    "      _omArr.push(_omTemplates[_omi]);\n" +
+    "    }\n" +
+    "    __result = { success: true, data: { renderSettingsTemplates: _rsArr, outputModuleTemplates: _omArr } };\n" +
+    "  }\n" +
+    "} finally {\n" +
+    "  if (_tempAdded && _rqItem) {\n" +
+    "    try { _rqItem.remove(); } catch (_cleanupErr) {}\n" +
+    "  }\n" +
+    "}\n" +
+    "return __result;\n";
 
-  // ─── set_render_item_settings ──────────────────────────────────────────
-  server.tool(
-    "set_render_item_settings",
-    "Apply a render settings template and configure time span on a render queue item. " +
-      "Use list_render_templates to find template names.",
-    {
-      renderItemIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the render queue item"),
-      template: z
-        .string()
-        .optional()
-        .describe("Render settings template name to apply"),
-      timeSpanStart: z
-        .number()
-        .optional()
-        .describe("Time span start in seconds"),
-      timeSpanDuration: z
-        .number()
-        .optional()
-        .describe("Time span duration in seconds"),
-    },
-    async ({ renderItemIndex, template, timeSpanStart, timeSpanDuration }) => {
-      let setLines = "";
-      if (template !== undefined) {
-        setLines += "_rqItem.applyTemplate(\"" + escapeString(template) + "\");\n";
-      }
-      if (timeSpanStart !== undefined) {
-        setLines += "_rqItem.timeSpanStart = " + timeSpanStart + ";\n";
-      }
-      if (timeSpanDuration !== undefined) {
-        setLines += "_rqItem.timeSpanDuration = " + timeSpanDuration + ";\n";
-      }
+  const script = wrapWithReturn(body);
+  try {
+    return runScript(script, "list_render_templates");
+  } catch (err) {
+    return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
+  }
+}
 
-      const body =
-        "var _rq = app.project.renderQueue;\n" +
-        "if (" + renderItemIndex + " < 1 || " + renderItemIndex + " > _rq.numItems) {\n" +
-        "  return { success: false, error: { message: \"Render item index " + renderItemIndex + " out of range — queue has \" + _rq.numItems + \" items.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _rqItem = _rq.item(" + renderItemIndex + ");\n" +
-        setLines +
-        "return { success: true, data: {\n" +
-        "  renderItemIndex: " + renderItemIndex + ",\n" +
-        "  compName: _rqItem.comp ? _rqItem.comp.name : \"Unknown\",\n" +
-        "  timeSpanStart: _rqItem.timeSpanStart,\n" +
-        "  timeSpanDuration: _rqItem.timeSpanDuration\n" +
-        "} };\n";
+export async function setRenderItemSettingsHelper(params: {
+  renderItemIndex: number;
+  template?: string;
+  timeSpanStart?: number;
+  timeSpanDuration?: number;
+}) {
+  const { renderItemIndex, template, timeSpanStart, timeSpanDuration } = params;
+  let setLines = "";
+  if (template !== undefined) {
+    setLines += "_rqItem.applyTemplate(\"" + escapeString(template) + "\");\n";
+  }
+  if (timeSpanStart !== undefined) {
+    setLines += "_rqItem.timeSpanStart = " + timeSpanStart + ";\n";
+  }
+  if (timeSpanDuration !== undefined) {
+    setLines += "_rqItem.timeSpanDuration = " + timeSpanDuration + ";\n";
+  }
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_render_item_settings"));
-      try {
-        return runScript(script, "set_render_item_settings");
-      } catch (err) {
-        return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  const body =
+    "var _rq = app.project.renderQueue;\n" +
+    "if (" + renderItemIndex + " < 1 || " + renderItemIndex + " > _rq.numItems) {\n" +
+    "  return { success: false, error: { message: \"Render item index " + renderItemIndex + " out of range — queue has \" + _rq.numItems + \" items.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _rqItem = _rq.item(" + renderItemIndex + ");\n" +
+    setLines +
+    "return { success: true, data: {\n" +
+    "  renderItemIndex: " + renderItemIndex + ",\n" +
+    "  compName: _rqItem.comp ? _rqItem.comp.name : \"Unknown\",\n" +
+    "  timeSpanStart: _rqItem.timeSpanStart,\n" +
+    "  timeSpanDuration: _rqItem.timeSpanDuration\n" +
+    "} };\n";
 
-  // ─── set_output_module_settings ────────────────────────────────────────
-  server.tool(
-    "set_output_module_settings",
-    "Apply an output module template and set the output file path. " +
-      "Use list_render_templates to find template names.",
-    {
-      renderItemIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the render queue item"),
-      outputModuleIndex: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("1-based index of the output module on the render item (default 1)"),
-      template: z
-        .string()
-        .optional()
-        .describe("Output module template name to apply"),
-      outputPath: z
-        .string()
-        .optional()
-        .describe("Absolute output file path including filename and extension"),
-    },
-    async ({ renderItemIndex, outputModuleIndex, template, outputPath }) => {
-      const omIdx = outputModuleIndex ?? 1;
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_render_item_settings"));
+  try {
+    return runScript(script, "set_render_item_settings");
+  } catch (err) {
+    return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
+  }
+}
 
-      let setLines = "";
-      if (template !== undefined) {
-        setLines += "_om.applyTemplate(\"" + escapeString(template) + "\");\n";
-      }
-      if (outputPath !== undefined) {
-        setLines += "_om.file = new File(\"" + escapeString(outputPath) + "\");\n";
-      }
+export async function setOutputModuleSettingsHelper(params: {
+  renderItemIndex: number;
+  outputModuleIndex?: number;
+  template?: string;
+  outputPath?: string;
+}) {
+  const { renderItemIndex, outputModuleIndex, template, outputPath } = params;
+  const omIdx = outputModuleIndex ?? 1;
 
-      const body =
-        "var _rq = app.project.renderQueue;\n" +
-        "if (" + renderItemIndex + " < 1 || " + renderItemIndex + " > _rq.numItems) {\n" +
-        "  return { success: false, error: { message: \"Render item index " + renderItemIndex + " out of range — queue has \" + _rq.numItems + \" items.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _rqItem = _rq.item(" + renderItemIndex + ");\n" +
-        "if (" + omIdx + " < 1 || " + omIdx + " > _rqItem.numOutputModules) {\n" +
-        "  return { success: false, error: { message: \"Output module index " + omIdx + " out of range - render item has \" + _rqItem.numOutputModules + \" output module(s).\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _om = _rqItem.outputModule(" + omIdx + ");\n" +
-        setLines +
-        "var _omPath = \"\";\n" +
-        "try { _omPath = _om.file ? _om.file.fsName : \"\"; } catch (_e) {}\n" +
-        "return { success: true, data: {\n" +
-        "  renderItemIndex: " + renderItemIndex + ",\n" +
-        "  outputModuleIndex: " + omIdx + ",\n" +
-        "  outputPath: _omPath\n" +
-        "} };\n";
+  let setLines = "";
+  if (template !== undefined) {
+    setLines += "_om.applyTemplate(\"" + escapeString(template) + "\");\n";
+  }
+  if (outputPath !== undefined) {
+    setLines += "_om.file = new File(\"" + escapeString(outputPath) + "\");\n";
+  }
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_output_module_settings"));
-      try {
-        return runScript(script, "set_output_module_settings");
-      } catch (err) {
-        return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+  const body =
+    "var _rq = app.project.renderQueue;\n" +
+    "if (" + renderItemIndex + " < 1 || " + renderItemIndex + " > _rq.numItems) {\n" +
+    "  return { success: false, error: { message: \"Render item index " + renderItemIndex + " out of range — queue has \" + _rq.numItems + \" items.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _rqItem = _rq.item(" + renderItemIndex + ");\n" +
+    "if (" + omIdx + " < 1 || " + omIdx + " > _rqItem.numOutputModules) {\n" +
+    "  return { success: false, error: { message: \"Output module index " + omIdx + " out of range - render item has \" + _rqItem.numOutputModules + \" output module(s).\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _om = _rqItem.outputModule(" + omIdx + ");\n" +
+    setLines +
+    "var _omPath = \"\";\n" +
+    "try { _omPath = _om.file ? _om.file.fsName : \"\"; } catch (_e) {}\n" +
+    "return { success: true, data: {\n" +
+    "  renderItemIndex: " + renderItemIndex + ",\n" +
+    "  outputModuleIndex: " + omIdx + ",\n" +
+    "  outputPath: _omPath\n" +
+    "} };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_output_module_settings"));
+  try {
+    return runScript(script, "set_output_module_settings");
+  } catch (err) {
+    return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
+  }
 }

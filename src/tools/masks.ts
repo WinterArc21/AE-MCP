@@ -193,64 +193,6 @@ export function registerMaskTools(server: McpServer): void {
     }
   );
 
-  // ─── list_masks ──────────────────────────────────────────────────────────────
-  server.tool(
-    "list_masks",
-    "List all masks on a layer, returning each mask's index, name, mode, " +
-      "inverted status, feather, opacity, and expansion values. " +
-      "Use this to discover existing masks before calling set_mask_properties. " +
-      "Returns an empty array if the layer has no masks.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer"),
-    },
-    async ({ compId, layerIndex }) => {
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "var _masks = layer.property(\"Masks\");\n" +
-        "var _result = [];\n" +
-        "for (var _mi = 1; _mi <= _masks.numProperties; _mi++) {\n" +
-        "  var _m = _masks.property(_mi);\n" +
-        "  var _modeStr = \"Unknown\";\n" +
-        "  if (_m.maskMode === MaskMode.NONE)       { _modeStr = \"None\"; }\n" +
-        "  if (_m.maskMode === MaskMode.ADD)        { _modeStr = \"Add\"; }\n" +
-        "  if (_m.maskMode === MaskMode.SUBTRACT)   { _modeStr = \"Subtract\"; }\n" +
-        "  if (_m.maskMode === MaskMode.INTERSECT)  { _modeStr = \"Intersect\"; }\n" +
-        "  if (_m.maskMode === MaskMode.LIGHTEN)    { _modeStr = \"Lighten\"; }\n" +
-        "  if (_m.maskMode === MaskMode.DARKEN)     { _modeStr = \"Darken\"; }\n" +
-        "  if (_m.maskMode === MaskMode.DIFFERENCE) { _modeStr = \"Difference\"; }\n" +
-        "  var _fth = _m.property(\"Mask Feather\").value;\n" +
-        "  _result.push({\n" +
-        "    index: _mi,\n" +
-        "    name: _m.name,\n" +
-        "    mode: _modeStr,\n" +
-        "    inverted: _m.inverted,\n" +
-        "    featherX: _fth[0],\n" +
-        "    featherY: _fth[1],\n" +
-        "    opacity: _m.property(\"Mask Opacity\").value,\n" +
-        "    expansion: _m.property(\"Mask Expansion\").value\n" +
-        "  });\n" +
-        "}\n" +
-        "return { success: true, data: { masks: _result, count: _result.length } };\n";
-
-      const script = wrapWithReturn(body);
-
-      try {
-        return runScript(script, "list_masks");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
 
   // ─── set_mask_properties ────────────────────────────────────────────────────────
   server.tool(
@@ -332,59 +274,6 @@ export function registerMaskTools(server: McpServer): void {
     }
   );
 
-  // ─── set_track_matte ────────────────────────────────────────────────────────────
-  server.tool(
-    "set_track_matte",
-    "Set the track matte type for a layer. " +
-      "Track mattes use the layer ABOVE the target layer as a matte source — " +
-      "the layer above should already be positioned in the timeline directly on top. " +
-      "Alpha = use the above layer's alpha channel as a matte; " +
-      "AlphaInverted = inverted alpha matte (shows where alpha is transparent); " +
-      "Luma = use the above layer's luminance as a matte (bright = visible); " +
-      "LumaInverted = inverted luma matte (dark = visible); " +
-      "None = remove track matte. " +
-      "When a track matte is applied, AE automatically hides the matte layer. " +
-      "Common use: place a shape or text layer above, then set track matte on the layer below " +
-      "to reveal it only within that shape.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer to apply the matte TO (the layer below the matte source)"),
-      trackMatteType: z
-        .enum(["None", "Alpha", "AlphaInverted", "Luma", "LumaInverted"])
-        .describe(
-          "None = remove matte; " +
-          "Alpha = alpha of layer above; " +
-          "AlphaInverted = inverted alpha; " +
-          "Luma = luminance of layer above; " +
-          "LumaInverted = inverted luminance"
-        ),
-    },
-    async ({ compId, layerIndex, trackMatteType }) => {
-      const aeType = trackMatteToAE(trackMatteType);
-
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "layer.trackMatteType = " + aeType + ";\n" +
-        "return { success: true, data: { layerIndex: " + layerIndex + ", layerName: layer.name, trackMatteType: \"" + escapeString(trackMatteType) + "\" } };\n";
-
-      const script = wrapWithReturn(wrapInUndoGroup(body, "set_track_matte"));
-
-      try {
-        return runScript(script, "set_track_matte");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
 
   // ─── set_mask_path ─────────────────────────────────────────────────────────────
   server.tool(
@@ -518,47 +407,90 @@ export function registerMaskTools(server: McpServer): void {
     }
   );
 
-  // ─── delete_mask ──────────────────────────────────────────────────────────────
-  server.tool(
-    "delete_mask",
-    "Delete a mask from a layer by index. Use list_masks to find mask indices.",
-    {
-      compId: z
-        .number()
-        .int()
-        .positive()
-        .describe("Numeric ID of the composition"),
-      layerIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the layer"),
-      maskIndex: z
-        .number()
-        .int()
-        .positive()
-        .describe("1-based index of the mask to delete (use list_masks to find it)"),
-    },
-    async ({ compId, layerIndex, maskIndex }) => {
-      const body =
-        findCompById("comp", compId) +
-        findLayerByIndex("layer", "comp", layerIndex) +
-        "var _masks = layer.property(\"Masks\");\n" +
-        "if (" + maskIndex + " < 1 || " + maskIndex + " > _masks.numProperties) {\n" +
-        "  return { success: false, error: { message: \"Mask index " + maskIndex + " out of range — layer has \" + _masks.numProperties + \" masks.\", code: \"INVALID_PARAMS\" } };\n" +
-        "}\n" +
-        "var _mask = _masks.property(" + maskIndex + ");\n" +
-        "var _maskName = _mask.name;\n" +
-        "_mask.remove();\n" +
-        "return { success: true, data: { deletedMaskIndex: " + maskIndex + ", deletedMaskName: _maskName } };\n";
+}
 
-      const script = wrapWithReturn(wrapInUndoGroup(body, "delete_mask"));
+// ---------------------------------------------------------------------------
+// Demoted helpers (no longer registered as MCP tools)
+// ---------------------------------------------------------------------------
 
-      try {
-        return runScript(script, "delete_mask");
-      } catch (err) {
-        return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
-      }
-    }
-  );
+export async function listMasksHelper(params: { compId: number; layerIndex: number }) {
+  const { compId, layerIndex } = params;
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "var _masks = layer.property(\"Masks\");\n" +
+    "var _result = [];\n" +
+    "for (var _mi = 1; _mi <= _masks.numProperties; _mi++) {\n" +
+    "  var _m = _masks.property(_mi);\n" +
+    "  var _modeStr = \"Unknown\";\n" +
+    "  if (_m.maskMode === MaskMode.NONE)       { _modeStr = \"None\"; }\n" +
+    "  if (_m.maskMode === MaskMode.ADD)        { _modeStr = \"Add\"; }\n" +
+    "  if (_m.maskMode === MaskMode.SUBTRACT)   { _modeStr = \"Subtract\"; }\n" +
+    "  if (_m.maskMode === MaskMode.INTERSECT)  { _modeStr = \"Intersect\"; }\n" +
+    "  if (_m.maskMode === MaskMode.LIGHTEN)    { _modeStr = \"Lighten\"; }\n" +
+    "  if (_m.maskMode === MaskMode.DARKEN)     { _modeStr = \"Darken\"; }\n" +
+    "  if (_m.maskMode === MaskMode.DIFFERENCE) { _modeStr = \"Difference\"; }\n" +
+    "  var _fth = _m.property(\"Mask Feather\").value;\n" +
+    "  _result.push({\n" +
+    "    index: _mi,\n" +
+    "    name: _m.name,\n" +
+    "    mode: _modeStr,\n" +
+    "    inverted: _m.inverted,\n" +
+    "    featherX: _fth[0],\n" +
+    "    featherY: _fth[1],\n" +
+    "    opacity: _m.property(\"Mask Opacity\").value,\n" +
+    "    expansion: _m.property(\"Mask Expansion\").value\n" +
+    "  });\n" +
+    "}\n" +
+    "return { success: true, data: { masks: _result, count: _result.length } };\n";
+
+  const script = wrapWithReturn(body);
+
+  try {
+    return runScript(script, "list_masks");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function setTrackMatteHelper(params: { compId: number; layerIndex: number; trackMatteType: "None" | "Alpha" | "AlphaInverted" | "Luma" | "LumaInverted" }) {
+  const { compId, layerIndex, trackMatteType } = params;
+  const aeType = trackMatteToAE(trackMatteType);
+
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "layer.trackMatteType = " + aeType + ";\n" +
+    "return { success: true, data: { layerIndex: " + layerIndex + ", layerName: layer.name, trackMatteType: \"" + escapeString(trackMatteType) + "\" } };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "set_track_matte"));
+
+  try {
+    return runScript(script, "set_track_matte");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
+}
+
+export async function deleteMaskHelper(params: { compId: number; layerIndex: number; maskIndex: number }) {
+  const { compId, layerIndex, maskIndex } = params;
+  const body =
+    findCompById("comp", compId) +
+    findLayerByIndex("layer", "comp", layerIndex) +
+    "var _masks = layer.property(\"Masks\");\n" +
+    "if (" + maskIndex + " < 1 || " + maskIndex + " > _masks.numProperties) {\n" +
+    "  return { success: false, error: { message: \"Mask index " + maskIndex + " out of range — layer has \" + _masks.numProperties + \" masks.\", code: \"INVALID_PARAMS\" } };\n" +
+    "}\n" +
+    "var _mask = _masks.property(" + maskIndex + ");\n" +
+    "var _maskName = _mask.name;\n" +
+    "_mask.remove();\n" +
+    "return { success: true, data: { deletedMaskIndex: " + maskIndex + ", deletedMaskName: _maskName } };\n";
+
+  const script = wrapWithReturn(wrapInUndoGroup(body, "delete_mask"));
+
+  try {
+    return runScript(script, "delete_mask");
+  } catch (err) {
+    return { content: [{ type: "text" as const, text: "Error: " + String(err) }], isError: true };
+  }
 }
