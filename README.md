@@ -2,7 +2,7 @@
 
 AI-powered motion design automation for Adobe After Effects. Connect Claude, Cursor, or any MCP-compatible AI assistant directly to After Effects.
 
-**v2.0.0** - 74 tools across 23 modules, agent knowledge base, and Cursor AI integration.
+**v2.0.0** - 77 tools across 24 modules, agent knowledge base, and Cursor AI integration.
 
 ## How it works
 
@@ -82,7 +82,7 @@ Replace `/path/to/ae-mcp` with the actual path to this directory.
 
 ## Available Tools
 
-`ae-mcp` currently ships **74 tools across 23 modules**.
+`ae-mcp` currently ships **77 tools across 24 modules**.
 
 For the full copy-paste API reference, see [TOOLS.md](TOOLS.md).
 
@@ -110,6 +110,7 @@ For the full copy-paste API reference, see [TOOLS.md](TOOLS.md).
 - Scripting: 1 tool
 - Design Knowledge: 2 tools
 - Compound Tools: 6 tools
+- QA & Polish: 3 tools
 
 ### Recommended Entry Points
 - Scene building: `create_composition`, `add_text_layer`, `add_shape_layer`, `create_scene`

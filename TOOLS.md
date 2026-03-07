@@ -2,7 +2,7 @@
 
 Canonical API reference for the shipped MCP tool surface.
 
-- Total tools: `74`
+- Total tools: `77`
 - Server version: `v2.0.0`
 - Source of truth: `src/tools/*.ts`
 
@@ -738,3 +738,29 @@ Canonical API reference for the shipped MCP tool surface.
 - `easing?`
 - `style?`
 - `direction?` — forward (default), reverse, center-out, random
+
+## QA & Polish
+
+### `critique_composition`
+- Purpose: inspect a composition and return a structured quality report scored against design rules (safe zones, text hierarchy, contrast, alignment, easing, duration, pure colors)
+- Args:
+- `compId`
+- `time?` — frame time to evaluate (default: 33% through comp)
+- `checks?` — array of specific checks to run (default: all). Options: safe-zones, text-hierarchy, contrast, alignment, easing, duration, pure-colors
+- Returns/features: score (0-100), grade (A-F), issues array with severity/layer/message/fix, passed checks list, summary
+
+### `apply_polish`
+- Purpose: apply professional finishing touches — motion blur, film grain, vignette, smooth easing, drop shadows
+- Args:
+- `compId`
+- `polishLevel?` — subtle (default), moderate, heavy
+- `features?` — array of features to apply (default: motion-blur, smooth-easing). Options: motion-blur, film-grain, vignette, smooth-easing, shadow-depth
+- Returns/features: list of applied/skipped features with summary
+
+### `fix_composition_issues`
+- Purpose: automatically fix issues identified by critique_composition (safe zone violations, linear keyframes, pure colors, alignment)
+- Args:
+- `compId`
+- `issues` — the issues array from critique_composition output
+- `fixAll?` — fix all issues (default true), or only errors if false
+- Returns/features: list of fixed/skipped issues with action descriptions
