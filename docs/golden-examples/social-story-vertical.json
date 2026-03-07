@@ -1,0 +1,485 @@
+{
+  "name": "social-story-vertical",
+  "description": "9:16 vertical social media story (1080×1920, 8s). Dark background with gradient color wash, large hook text at top that scale-bounces in fast, supporting text below with staggered entrance, a decorative circle accent, and a slow background scale drift. All content kept within mobile-safe center 80% zone. Fast Tech/SaaS energy (0.7× timing multiplier). Cyberpunk neon palette.",
+  "tags": ["social-media", "story", "vertical", "9-16", "mobile", "neon", "hook-text", "fast-entrance"],
+  "comp": { "width": 1080, "height": 1920, "fps": 29.97, "duration": 8 },
+  "style": "neon-cyber-pop-vertical",
+  "customizable_fields": {
+    "hook_text": { "default": "THIS CHANGES\nEVERYTHING", "description": "Primary hook text at top — short, bold, max 4 words per line for vertical legibility" },
+    "supporting_line_1": { "default": "New feature dropping", "description": "First supporting text line" },
+    "supporting_line_2": { "default": "swipe to find out →", "description": "Second supporting text line — CTA" },
+    "accent_color": { "default": [1.0, 0.176, 0.667], "description": "Neon Magenta #FF2DAA for hook text and accent circle" },
+    "secondary_color": { "default": [0.0, 0.639, 1.0], "description": "Electric Cyan #00A3FF for supporting text" },
+    "bg_color": { "default": [0.043, 0.063, 0.125], "description": "Deep navy base #0B1020 from Laser Lagoon palette" }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "tool": "create_composition",
+      "params": {
+        "name": "Social Story Vertical",
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 29.97,
+        "duration": 8,
+        "backgroundColor": [0.043, 0.063, 0.125]
+      },
+      "note": "9:16 vertical (1080×1920) at 29.97fps. Deep navy #0B1020 — the Laser Lagoon base for maximum neon vibrancy against the dark. Store returned ID as $compId."
+    },
+    {
+      "step": 2,
+      "tool": "add_solid_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "BG Base",
+        "width": 1080,
+        "height": 1920,
+        "color": [0.043, 0.063, 0.125]
+      },
+      "note": "Explicit background solid. This is the lowest layer — all other elements composite above it."
+    },
+    {
+      "step": 3,
+      "tool": "apply_effect",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "effectName": "Gradient Ramp",
+        "effectMatchName": "ADBE Ramp"
+      },
+      "note": "Gradient Ramp on the background solid creates a dynamic vertical gradient from deep navy to near-black — establishes depth and makes the center feel lighter (drawing the eye inward). This is a native AE effect, no plugins needed."
+    },
+    {
+      "step": 4,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "effectName": "Gradient Ramp",
+        "propertyName": "Start of Ramp",
+        "value": [540, 0]
+      },
+      "note": "Gradient starts at top-center (540, 0) — vertical top-to-bottom gradient at 90° angle for 'stability, strength' per gradient angle guide."
+    },
+    {
+      "step": 5,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "effectName": "Gradient Ramp",
+        "propertyName": "End of Ramp",
+        "value": [540, 1920]
+      },
+      "note": "Gradient ends at bottom-center — full vertical span of the 1920px frame."
+    },
+    {
+      "step": 6,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "effectName": "Gradient Ramp",
+        "propertyName": "Start Color",
+        "value": [0.082, 0.106, 0.247]
+      },
+      "note": "Start color #15113F — slightly lighter, more saturated navy/indigo at the top. Creates a subtle indigo-to-black depth gradient."
+    },
+    {
+      "step": 7,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "effectName": "Gradient Ramp",
+        "propertyName": "End Color",
+        "value": [0.012, 0.016, 0.039]
+      },
+      "note": "End color #030A0A — near-pure black at the bottom. The lighter-top/darker-bottom gradient pulls the eye upward toward the hook text."
+    },
+    {
+      "step": 8,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "propertyPath": "transform.scale",
+        "keyframes": [
+          { "time": 0.0, "value": [100, 100] },
+          { "time": 8.0, "value": [110, 110] }
+        ]
+      },
+      "note": "Subtle background scale drift: 100%→110% over 8s — Ken Burns-style slow zoom on the gradient BG. Creates a living, breathing feel without distraction. 10% over 8s = 1.25% per second, virtually imperceptible moment-to-moment but noticeable as a motion quality boost."
+    },
+    {
+      "step": 9,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_2",
+        "propertyPath": "transform.scale",
+        "easingType": "ease_in_out"
+      },
+      "note": "easeInOutSine on the background drift — 'cinematic, languid' easing matching the slow-scale character. The gentlest easing curve for an almost imperceptible acceleration."
+    },
+    {
+      "step": 10,
+      "tool": "add_shape_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "Accent Circle",
+        "position": [540, 960]
+      },
+      "note": "Decorative accent circle at dead center of the frame. Will be styled as a large, thin-stroked ring for visual interest without blocking content. Positioned at comp center (540, 960)."
+    },
+    {
+      "step": 11,
+      "tool": "add_shape_group",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_10",
+        "groupName": "Ring Group",
+        "shapeType": "ellipse",
+        "size": [700, 700],
+        "fillColor": [0, 0, 0, 0],
+        "strokeColor": [1.0, 0.176, 0.667],
+        "strokeWidth": 2
+      },
+      "note": "700px diameter ring with 2px Neon Magenta stroke, no fill — a large circle outline purely for compositional geometry. 700px ≈ 65% of frame width (1080×0.65≈700), large enough to feel structural, small enough not to crowd content."
+    },
+    {
+      "step": 12,
+      "tool": "set_layer_timing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_10",
+        "inPoint": 0.0,
+        "outPoint": 8.0
+      },
+      "note": "Circle is present for the full duration — it's a static compositional element, not an animated entrance."
+    },
+    {
+      "step": 13,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_10",
+        "propertyPath": "transform.scale",
+        "keyframes": [
+          { "time": 0.0, "value": [95, 95] },
+          { "time": 8.0, "value": [105, 105] }
+        ]
+      },
+      "note": "Counter-drift on circle (95%→105%) — opposite direction to the background scale drift. This creates subtle parallax depth: background zooms in while circle ring breathes outward, adding perceived Z-depth in a 2D comp."
+    },
+    {
+      "step": 14,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_10",
+        "propertyPath": "transform.scale",
+        "easingType": "ease_in_out"
+      },
+      "note": "Same easeInOutSine as background drift — matching the rhythmic, organic pacing of the counter-drift."
+    },
+    {
+      "step": 15,
+      "tool": "add_text_layer",
+      "params": {
+        "compId": "$compId",
+        "text": "THIS CHANGES\nEVERYTHING",
+        "name": "Hook Text",
+        "fontSize": 100,
+        "fontFamily": "Inter",
+        "fontWeight": "Black",
+        "fillColor": [1.0, 0.176, 0.667],
+        "position": [540, 480],
+        "anchorPoint": [0.5, 0.5],
+        "tracking": 50,
+        "lineHeight": 1.1
+      },
+      "note": "100pt for vertical format — research: 'scale type up 30–40%' for 9:16 vs 16:9. This translates to ~75pt at 1080p 16:9 equivalent, scaled to 100pt. Position y=480 places hook text in the upper third of the 1920px frame (480/1920=25% from top) — within mobile-safe zone (top safe starts at 192px from top, 10%). Neon Magenta fills, all-caps tracking 50 (lower than max since font is already large). Line height 1.1 for tight hero-title stacking."
+    },
+    {
+      "step": 16,
+      "tool": "set_layer_timing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_15",
+        "inPoint": 0.0,
+        "outPoint": 8.0
+      },
+      "note": "Hook text visible from frame 0 — it's the primary anchor of the story, never exits."
+    },
+    {
+      "step": 17,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_15",
+        "propertyPath": "transform.scale",
+        "keyframes": [
+          { "time": 0.0, "value": [0, 0] },
+          { "time": 0.21, "value": [112, 112] },
+          { "time": 0.3, "value": [95, 95] },
+          { "time": 0.38, "value": [100, 100] }
+        ]
+      },
+      "note": "Fast scale-bounce entrance: 0→112%→95%→100%. Duration: 0.38s total — standard 0.5s × 0.7 Tech/SaaS multiplier = 0.35s ≈ 0.38s. Overshoot of 12% at 0.21s = within the standard 10–15% overshoot range. Decreasing intervals: 0.21s, 0.09s, 0.08s — matches spring physics decay. This hits within the 0.3–0.5s 'fast-paced entrance' spec."
+    },
+    {
+      "step": 18,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_15",
+        "propertyPath": "transform.scale",
+        "easingType": "ease_out"
+      },
+      "note": "easeOutExpo-equivalent: snappiest deceleration for a pop entrance. The hook text must feel immediate and attention-grabbing — this is the first thing the viewer sees."
+    },
+    {
+      "step": 19,
+      "tool": "add_text_layer",
+      "params": {
+        "compId": "$compId",
+        "text": "New feature dropping",
+        "name": "Supporting Text 1",
+        "fontSize": 48,
+        "fontFamily": "Inter",
+        "fontWeight": "SemiBold",
+        "fillColor": [0.0, 0.639, 1.0],
+        "position": [540, 1280],
+        "anchorPoint": [0.5, 0.5],
+        "tracking": 30
+      },
+      "note": "48pt in Electric Cyan — research secondary title at 36–54px is the right zone. Position y=1280 (1280/1920=66.7%) — exactly at the lower two-thirds mark. Cyan vs. Magenta hook text creates the primary/secondary contrast hierarchy. Tracking +30 for SemiBold at this size."
+    },
+    {
+      "step": 20,
+      "tool": "set_layer_timing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_19",
+        "inPoint": 0.4,
+        "outPoint": 8.0
+      },
+      "note": "Supporting text 1 starts at 0.4s — staggered 0.4s after hook text. Research: hero elements stagger at 8–16 frames (267–533ms); 0.4s = ~12 frames @ 29.97fps, the midpoint. Ensures the hook text registers first before supporting info appears."
+    },
+    {
+      "step": 21,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_19",
+        "propertyPath": "transform.position",
+        "keyframes": [
+          { "time": 0.4, "value": [540, 1320] },
+          { "time": 0.65, "value": [540, 1280] }
+        ]
+      },
+      "note": "Slide up from y=1320 to y=1280 (40px upward). Duration 0.25s — snappy sub-0.3s entrance. 40px displacement is conservative (within safe zone for legibility during motion). Combined with opacity below for a fluid, material-feeling entrance."
+    },
+    {
+      "step": 22,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_19",
+        "propertyPath": "transform.opacity",
+        "keyframes": [
+          { "time": 0.4, "value": 0 },
+          { "time": 0.65, "value": 100 }
+        ]
+      },
+      "note": "Simultaneous opacity 0→100 with the position slide up. The combination of position + opacity creates the Material Design 'emphasized decelerate' feel — enters from slightly below, arrives sharp."
+    },
+    {
+      "step": 23,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_19",
+        "propertyPath": "transform.position",
+        "easingType": "ease_out"
+      },
+      "note": "easeOut on slide-up position — enters fast, settles smoothly. Matching Material Design 3 Emphasized Decelerate curve: starts nearly vertical, coasts to rest."
+    },
+    {
+      "step": 24,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_19",
+        "propertyPath": "transform.opacity",
+        "easingType": "ease_out"
+      },
+      "note": "easeOut on opacity matches the position easing — both properties arrive at the same rate, avoiding any visual lag between the move and the fade-in."
+    },
+    {
+      "step": 25,
+      "tool": "add_text_layer",
+      "params": {
+        "compId": "$compId",
+        "text": "swipe to find out →",
+        "name": "Supporting Text 2 — CTA",
+        "fontSize": 42,
+        "fontFamily": "Inter",
+        "fontWeight": "Medium",
+        "fillColor": [0.961, 0.98, 0.98],
+        "position": [540, 1380],
+        "anchorPoint": [0.5, 0.5],
+        "tracking": 20
+      },
+      "note": "CTA text in off-white #F5F5F5 — slightly smaller (42pt) and lighter weight (Medium) than Supporting Text 1 (48pt SemiBold), creating a three-tier visual hierarchy: Hook (100pt Black Magenta) → Supporting (48pt SemiBold Cyan) → CTA (42pt Medium White). Position y=1380 (71.9% of 1920px), within the 80% safe zone (1920×0.9=1728px limit)."
+    },
+    {
+      "step": 26,
+      "tool": "set_layer_timing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_25",
+        "inPoint": 0.65,
+        "outPoint": 8.0
+      },
+      "note": "CTA starts at 0.65s — 0.25s after Supporting Text 1 (which starts at 0.4s). Progressive stagger: 0s hook, 0.4s support 1, 0.65s CTA. Matches research 'progressive stagger' technique: slightly accelerating intervals for natural cascade."
+    },
+    {
+      "step": 27,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_25",
+        "propertyPath": "transform.position",
+        "keyframes": [
+          { "time": 0.65, "value": [540, 1420] },
+          { "time": 0.88, "value": [540, 1380] }
+        ]
+      },
+      "note": "Same slide-up pattern as Supporting Text 1 (40px from 1420→1380) at 0.23s duration — slightly faster than its predecessor per the progressive stagger acceleration principle."
+    },
+    {
+      "step": 28,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_25",
+        "propertyPath": "transform.opacity",
+        "keyframes": [
+          { "time": 0.65, "value": 0 },
+          { "time": 0.88, "value": 100 }
+        ]
+      },
+      "note": "Matching opacity fade for CTA text, synchronized with the position slide. Parallel opacity + position animation is the standard material-feel entrance."
+    },
+    {
+      "step": 29,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_25",
+        "propertyPath": "transform.position",
+        "easingType": "ease_out"
+      },
+      "note": "Consistent easeOut on CTA slide-up — maintains the same kinetic character as Supporting Text 1 for visual cohesion."
+    },
+    {
+      "step": 30,
+      "tool": "set_all_keyframes_easing",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_25",
+        "propertyPath": "transform.opacity",
+        "easingType": "ease_out"
+      },
+      "note": "Consistent easeOut on CTA opacity."
+    },
+    {
+      "step": 31,
+      "tool": "add_solid_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "Gradient Color Wash",
+        "width": 1080,
+        "height": 1920,
+        "color": [0.482, 0.173, 1.0]
+      },
+      "note": "Electric Violet #7B2CFF solid as a Screen-mode color wash overlay. This adds a subtle violet hue to highlights of the background, creating the aurora/nebula depth from the Neon Galaxy Pulse palette."
+    },
+    {
+      "step": 32,
+      "tool": "set_blend_mode",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_31",
+        "blendMode": "Screen"
+      },
+      "note": "Screen blending mode: 1-(1-A)(1-B). Only lightens — on a dark background this creates a gentle violet color tint in the lighter areas without affecting shadows. Opacity will be reduced to keep it subtle."
+    },
+    {
+      "step": 33,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_31",
+        "propertyPath": "transform.opacity",
+        "keyframes": [
+          { "time": 0.0, "value": 8 }
+        ]
+      },
+      "note": "Hold opacity at 8% — extremely subtle. Screen at 8% opacity on a violet solid over near-black creates just a whisper of color warmth in the gradient. Too much would overpower the neon text colors."
+    },
+    {
+      "step": 34,
+      "tool": "reorder_layer",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_31",
+        "newIndex": 3
+      },
+      "note": "Move the gradient color wash below the accent circle and text layers, but above the BG base — ensures the color tint affects the background but doesn't visually interfere with text."
+    },
+    {
+      "step": 35,
+      "tool": "set_motion_blur",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_15",
+        "enabled": true
+      },
+      "note": "Motion blur on hook text — the fast scale-bounce pop benefits from MB, making the entrance feel photographic and kinetic rather than digital."
+    },
+    {
+      "step": 36,
+      "tool": "set_motion_blur",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_19",
+        "enabled": true
+      },
+      "note": "Motion blur on Supporting Text 1 — the slide-up entrance will have natural vertical smear."
+    },
+    {
+      "step": 37,
+      "tool": "set_motion_blur",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$layerIndex_25",
+        "enabled": true
+      },
+      "note": "Motion blur on CTA text — consistent quality across all animated text layers."
+    },
+    {
+      "step": 38,
+      "tool": "set_motion_blur_settings",
+      "params": {
+        "compId": "$compId",
+        "shutterAngle": 180,
+        "shutterPhase": -90,
+        "samplesPerFrame": 16
+      },
+      "note": "180° shutter angle — cinematic film standard. 16 samples at 29.97fps provides clean, smooth motion blur without overly long render times."
+    }
+  ]
+}

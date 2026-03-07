@@ -1,0 +1,474 @@
+{
+  "name": "particle-background",
+  "description": "Animated particle/atmospheric background for use as a pre-comp behind other content. 1920×1080, 10s, designed to seamlessly loop. Layers (bottom to top): deep near-black base solid → CC Particle World adjustment layer (floating ambient particles) → Fractal Noise solid (organic texture overlay, Screen mode) → Gradient Ramp solid (color wash, Screen mode) → Vignette solid (elliptical mask, Multiply mode). All animation uses ES3 expressions for seamless looping — no manually-keyed props. Corporate dark palette. Entirely native AE effects, no plugins.",
+  "tags": ["background", "particle", "loop", "atmospheric", "ambient", "pre-comp", "dark", "cinematic", "generative"],
+  "comp": { "width": 1920, "height": 1080, "fps": 29.97, "duration": 10 },
+  "style": "corporate-dark-cinematic",
+  "customizable_fields": {
+    "particle_color_birth": { "default": [0.231, 0.510, 0.976], "description": "CC Particle World birth color [r,g,b] 0-1 — default Tech Blue #3B82F6" },
+    "particle_color_death": { "default": [0.388, 0.388, 0.710], "description": "CC Particle World death color [r,g,b] 0-1 — fades to muted indigo" },
+    "gradient_top_color": { "default": [0.118, 0.149, 0.400], "description": "Gradient Ramp top stop [r,g,b] 0-1 — default deep navy #1E2666" },
+    "gradient_bottom_color": { "default": [0.039, 0.039, 0.059], "description": "Gradient Ramp bottom stop [r,g,b] 0-1 — near-black base" },
+    "birth_rate": { "default": 0.4, "description": "CC Particle World Birth Rate — lower = more sparse/ambient (0.1–1.0)" },
+    "particle_longevity": { "default": 4.0, "description": "CC Particle World Longevity in seconds — higher = particles drift longer before dying" },
+    "fractal_opacity": { "default": 12, "description": "Opacity of Fractal Noise texture overlay in % — keep 8–20 for subtle texture" },
+    "gradient_opacity": { "default": 30, "description": "Opacity of gradient color wash in % — 20–40 for subtle color without overpowering" }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "tool": "create_composition",
+      "params": {
+        "name": "Particle Background",
+        "width": 1920,
+        "height": 1080,
+        "frameRate": 29.97,
+        "duration": 10,
+        "backgroundColor": [0.043, 0.043, 0.063]
+      },
+      "note": "10s duration for a comfortable loop length. At 29.97fps = 299.7 frames — loopOut('cycle') expressions reference the last keyframe, which will be set at exactly 10s for a perfect loop. Background color is the deep near-black #0B0B10. Store returned ID as $compId."
+    },
+    {
+      "step": 2,
+      "tool": "add_solid_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "BG Near-Black",
+        "width": 1920,
+        "height": 1080,
+        "color": [0.043, 0.043, 0.063]
+      },
+      "note": "Base solid: near-black #0B0B10 from the Corporate/Tech Dark Stack. This is the deepest foundation — everything else layers above it. Near-black with a cool blue cast (not pure #000000) per the professional standard from research section 3.1: 'Material Design uses #121212 as the primary background — not pure black'. This value is even slightly cooler for a more cinematic feel."
+    },
+    {
+      "step": 3,
+      "tool": "add_adjustment_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "CC Particle World Layer"
+      },
+      "note": "CC Particle World is applied to an adjustment layer rather than a solid — this means it composites over the background rather than replacing it. Adjustment layer approach allows proper blending mode and opacity control over the particles. Store returned layerIndex as $particleLayerIdx."
+    },
+    {
+      "step": 4,
+      "tool": "apply_effect",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "effectMatchName": "CS ParticleWorld"
+      },
+      "note": "CC Particle World (Simulation category) — native AE 3D particle system. 'Ambient' preset recipe from research: Birth Rate 0.4, Longevity 4.0, Velocity 0.15, Gravity -0.05 (negative = float upward), Type: Faded Sphere. This creates the slow-floating dust/star particle field feel appropriate for backgrounds."
+    },
+    {
+      "step": 5,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Birth Rate",
+        "value": 0.4
+      },
+      "note": "Birth Rate 0.4 — low birth rate for sparse ambient particles. Research 'Ambient' recipe. High birth rates create dense, busy fields (appropriate for explosions/sparks); 0.4 creates a calm, floating atmosphere with visible individual particles."
+    },
+    {
+      "step": 6,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Longevity (sec)",
+        "value": 4.0
+      },
+      "note": "Longevity 4.0s — particles live for 4 seconds before dying. Long longevity means fewer particles but each one drifts longer, creating the slow atmospheric float. At Birth Rate 0.4, this yields a balanced steady-state particle count."
+    },
+    {
+      "step": 7,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Velocity",
+        "value": 0.15
+      },
+      "note": "Velocity 0.15 — very slow initial velocity. Research 'Snow' recipe uses 0.1, 'Magic' uses 0.4 — 0.15 is between these for an ambient drift that's slow enough to read as floating rather than falling."
+    },
+    {
+      "step": 8,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Gravity",
+        "value": -0.05
+      },
+      "note": "Gravity -0.05 (slightly negative) — particles have a very slight upward drift over time, counteracting any downward fall. This creates the 'floating embers' or 'dust motes rising' look rather than falling snow."
+    },
+    {
+      "step": 9,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Extra Angle",
+        "value": 180
+      },
+      "note": "Extra Angle 180° — particles emit in all directions (full sphere). This distributes particles evenly across the entire frame rather than in a cone or single direction."
+    },
+    {
+      "step": 10,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Particle Type",
+        "value": 2
+      },
+      "note": "Particle Type 2 = Faded Sphere — soft, anti-aliased circular particle that fades at its edges. From research 'Snow' and 'Magic' recipes. Faded Sphere is the most versatile ambient particle type — reads as a soft light point at small sizes, as a distinct sphere at medium sizes."
+    },
+    {
+      "step": 11,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Birth Size",
+        "value": 0.025
+      },
+      "note": "Birth Size 0.025 — small particles at birth (2.5% of comp size ≈ 27px at 1080p). Small size keeps particles as delicate points of light rather than dominating orbs."
+    },
+    {
+      "step": 12,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Death Size",
+        "value": 0.01
+      },
+      "note": "Death Size 0.01 — particles shrink as they age, eventually disappearing. This creates a natural fade-out at the end of the particle's life without needing an opacity animation."
+    },
+    {
+      "step": 13,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Birth Color",
+        "value": [0.231, 0.510, 0.976]
+      },
+      "note": "Birth Color: Tech Blue #3B82F6 — the standard corporate accent from the Corporate/Tech Dark palette. Particles start as this cool blue, reinforcing the tech aesthetic."
+    },
+    {
+      "step": 14,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "effectName": "CC Particle World",
+        "propertyName": "Death Color",
+        "value": [0.388, 0.388, 0.710]
+      },
+      "note": "Death Color: Muted indigo — particles fade to a duller, more desaturated version of the blue as they age and shrink. This transition from bright blue to dim indigo reads as natural particle decay."
+    },
+    {
+      "step": 15,
+      "tool": "set_blend_mode",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "blendMode": "Add"
+      },
+      "note": "Add blend mode on the particle adjustment layer — additive blending means particles add luminance to the dark background, creating the 'glowing light on dark' look essential for ambient particle effects. The formula: A + B, always brightens. On a near-black background, particles only appear where they have value, making the black areas invisible (the key compositing benefit of Add on dark backgrounds)."
+    },
+    {
+      "step": 16,
+      "tool": "add_solid_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "Fractal Texture",
+        "width": 1920,
+        "height": 1080,
+        "color": [0.2, 0.2, 0.2]
+      },
+      "note": "Mid-gray solid that will host the Fractal Noise effect. The actual color doesn't matter here since Screen blending mode will remove all mid-dark values and the fractal's own generated pattern will define the output. Store returned layerIndex as $fractalLayerIdx."
+    },
+    {
+      "step": 17,
+      "tool": "apply_effect",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "effectName": "Fractal Noise",
+        "effectMatchName": "ADBE Fractal Noise"
+      },
+      "note": "Fractal Noise (Generate category) — creates organic, flowing texture patterns. At low contrast and slow evolution speed, it produces a subtle organic grain/texture overlay. This is the 'film grain-like noise that evolves' layer for cinematic depth."
+    },
+    {
+      "step": 18,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "effectName": "Fractal Noise",
+        "propertyName": "Fractal Type",
+        "value": 0
+      },
+      "note": "Fractal Type 0 = Basic — the simplest, most uniform fractal pattern. More complex types (Turbulent, Swirly) would create too much visual noise for an ambient background layer."
+    },
+    {
+      "step": 19,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "effectName": "Fractal Noise",
+        "propertyName": "Contrast",
+        "value": 60
+      },
+      "note": "Contrast 60 (below default 100) — reduces the brightness range of the fractal pattern, keeping highlights subtle and midtones compressed. This produces a 'low contrast fog' feel rather than hard bright-dark transitions."
+    },
+    {
+      "step": 20,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "effectName": "Fractal Noise",
+        "propertyName": "Brightness",
+        "value": -30
+      },
+      "note": "Brightness -30 — shifts the fractal noise darker overall. Since we're using Screen blend mode (which only shows values above black), this means only the very brightest peaks of the fractal will be visible, creating a sparse, delicate texture."
+    },
+    {
+      "step": 21,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "effectName": "Fractal Noise",
+        "propertyName": "Transform Scale",
+        "value": 300
+      },
+      "note": "Scale 300% — large fractal features create a broad, slow-moving fog/cloud pattern rather than fine grain. Larger scale = more sweeping, cinematic texture movement. Appropriate for ambient backgrounds."
+    },
+    {
+      "step": 22,
+      "tool": "set_expression",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "propertyPath": "Effects.Fractal Noise.Evolution",
+        "expression": "time * 30;"
+      },
+      "note": "Evolution expression: `time * 30` — evolves the fractal at 30 degrees per second. At this rate, the pattern changes completely approximately every 12 seconds (360°/30°per sec = 12s). Slower than the 10s comp duration, so the texture drifts gradually without repeating within the loop. ES3-compatible, no var declarations needed for simple math."
+    },
+    {
+      "step": 23,
+      "tool": "set_blend_mode",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "blendMode": "Screen"
+      },
+      "note": "Screen blend mode on Fractal Texture: 1-(1-A)(1-B). Shows only the bright peaks of the fractal over the dark background — creates a wispy, organic texture overlay. Screen is softer than Add, appropriate for the subtle fog/texture role here."
+    },
+    {
+      "step": 24,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$fractalLayerIdx",
+        "propertyPath": "transform.opacity",
+        "keyframes": [
+          { "time": 0.0, "value": 12 }
+        ]
+      },
+      "note": "Fractal Texture opacity held at 12% — within the customizable_fields recommended range of 8–20%. At this opacity, the texture adds organic depth without becoming visible as an independent element. It 'thickens' the background subtly."
+    },
+    {
+      "step": 25,
+      "tool": "add_solid_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "Gradient Color Wash",
+        "width": 1920,
+        "height": 1080,
+        "color": [0.043, 0.043, 0.063]
+      },
+      "note": "Gradient color wash solid. Will receive a Gradient Ramp effect and Screen blend mode for a subtle top-to-bottom color gradient overlay. This adds chromatic depth to the otherwise monochromatic near-black background. Store returned layerIndex as $gradLayerIdx."
+    },
+    {
+      "step": 26,
+      "tool": "apply_effect",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "effectName": "Gradient Ramp",
+        "effectMatchName": "ADBE Ramp"
+      },
+      "note": "Gradient Ramp effect on the color wash solid — creates a linear gradient from top to bottom. This generates the chromatic depth gradient that gives the background its atmospheric color feel (blueish at top, darker at bottom)."
+    },
+    {
+      "step": 27,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "effectName": "Gradient Ramp",
+        "propertyName": "Start Color",
+        "value": [0.118, 0.149, 0.400]
+      },
+      "note": "Start color #1E2666 — deep navy-indigo from the Corporate Slate Orchid palette variant. At the top of the frame this creates the subtle blue suggestion of depth that anchors the atmospheric look."
+    },
+    {
+      "step": 28,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "effectName": "Gradient Ramp",
+        "propertyName": "End Color",
+        "value": [0.012, 0.012, 0.024]
+      },
+      "note": "End color near-black at the bottom (darker than the base solid) — the gradient intensifies the bottom-of-frame darkness, naturally drawing the eye upward."
+    },
+    {
+      "step": 29,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "effectName": "Gradient Ramp",
+        "propertyName": "Start of Ramp",
+        "value": [960, 0]
+      },
+      "note": "Gradient starts at top-center [960, 0]. Vertical gradient at 90° — matches the 'stability, strength' angle recommendation."
+    },
+    {
+      "step": 30,
+      "tool": "set_effect_property",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "effectName": "Gradient Ramp",
+        "propertyName": "End of Ramp",
+        "value": [960, 1080]
+      },
+      "note": "Gradient ends at bottom-center [960, 1080] — full vertical span of the 1080px frame height."
+    },
+    {
+      "step": 31,
+      "tool": "set_blend_mode",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "blendMode": "Screen"
+      },
+      "note": "Screen blend mode on Gradient Color Wash — the gradient's dark areas become transparent, only the lighter parts of the gradient (the indigo top) adds color. Screen on the dark navy gradient over near-black adds a cool blue tint at the top of the frame without affecting the pure-black areas."
+    },
+    {
+      "step": 32,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$gradLayerIdx",
+        "propertyPath": "transform.opacity",
+        "keyframes": [
+          { "time": 0.0, "value": 30 }
+        ]
+      },
+      "note": "Gradient wash held at 30% opacity — within the 20–40% recommended range. High enough to add noticeable color depth, low enough to not overpower the near-black atmosphere."
+    },
+    {
+      "step": 33,
+      "tool": "add_solid_layer",
+      "params": {
+        "compId": "$compId",
+        "name": "Vignette",
+        "width": 1920,
+        "height": 1080,
+        "color": [0.0, 0.0, 0.0]
+      },
+      "note": "Pure black solid for the vignette layer. The elliptical mask with feathering and Multiply blend mode will darken the frame edges. Black × anything = black (Multiply formula: A × B), so a pure black solid on Multiply darkens whatever is beneath. Store returned layerIndex as $vignetteLayerIdx."
+    },
+    {
+      "step": 34,
+      "tool": "add_mask",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$vignetteLayerIdx",
+        "maskShape": "ellipse",
+        "maskSize": [1760, 960],
+        "maskPosition": [960, 540],
+        "inverted": true
+      },
+      "note": "Elliptical mask centered in the frame, sized to 1760×960 (92% of 1920×1040) — slightly smaller than the frame so the mask reveals the outer edge area. INVERTED: the mask is inverted so the vignette SHOWS outside the ellipse (the edges darken, center stays transparent)."
+    },
+    {
+      "step": 35,
+      "tool": "set_mask_properties",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$vignetteLayerIdx",
+        "maskIndex": 1,
+        "feather": [300, 300],
+        "opacity": 100,
+        "expansion": 0
+      },
+      "note": "Feather 300px on both axes — creates an extremely soft, gradual darkening from edge to center. This is the professional vignette approach (200–400px feather) from the research section 2.6 cinematic grade workflow. No hard vignette edge — just a gentle atmospheric darkness at the periphery."
+    },
+    {
+      "step": 36,
+      "tool": "set_blend_mode",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$vignetteLayerIdx",
+        "blendMode": "Multiply"
+      },
+      "note": "Multiply blend mode on vignette. Pure black × any color = black. The inverted, feathered ellipse on Multiply mode creates a soft darkening ring around the frame edges without affecting the center. Professional alternative to using the CC Vignette effect — this approach is fully non-destructive."
+    },
+    {
+      "step": 37,
+      "tool": "add_keyframes_batch",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$vignetteLayerIdx",
+        "propertyPath": "transform.opacity",
+        "keyframes": [
+          { "time": 0.0, "value": 65 }
+        ]
+      },
+      "note": "Vignette opacity at 65% — strong enough to create a clear center-focus effect, not so strong that the edges go to pure black. At 65% Multiply, the corners darken to approximately 35% of their original value (100% - 65% = 35% of original luminance)."
+    },
+    {
+      "step": 38,
+      "tool": "set_expression",
+      "params": {
+        "compId": "$compId",
+        "layerIndex": "$particleLayerIdx",
+        "propertyPath": "Effects.CC Particle World.Producer Position",
+        "expression": "var cx = 960; var cy = 540; var ox = Math.sin(time * 0.3) * 100; var oy = Math.cos(time * 0.2) * 60; [cx + ox, cy + oy, 0];"
+      },
+      "note": "Slowly drifting producer position expression (ES3): producer moves in a gentle Lissajous pattern, shifting ±100px horizontally and ±60px vertically. Frequencies 0.3 and 0.2 Hz create a non-repeating drift path within the 10s loop (the pattern cycles at LCM of 1/0.3 and 1/0.2 = ~33s, longer than the 10s comp). This ensures particle origin feels organic without a visible loop point."
+    },
+    {
+      "step": 39,
+      "tool": "add_to_render_queue",
+      "params": {
+        "compId": "$compId",
+        "outputPath": "particle-background-loop.mov"
+      },
+      "note": "Render as ProRes 4444 .mov for use as a pre-comp source — lossless with alpha support. When used behind other content, the receiver comp can apply Track Matte or blend modes. The 10s duration loops seamlessly via the expression-driven animations."
+    }
+  ]
+}
