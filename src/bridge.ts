@@ -89,6 +89,8 @@ interface PendingCommand {
   reject: (reason: Error) => void;
   timeout: ReturnType<typeof setTimeout>;
   commandFile: string;
+  toolName: string;
+  script: string;
 }
 
 interface CommandPayload {
@@ -191,8 +193,21 @@ export class AEBridge {
     if (response.result.success === false) {
       const msg = response.result.error?.message ?? "Unknown error from After Effects";
       const code = response.result.error?.code ?? "AE_ERROR";
+      this.appendLog({
+        tool: pending.toolName,
+        status: "error",
+        id: response.id,
+        script: pending.script,
+        error: "[" + code + "] " + msg,
+      });
       pending.reject(new Error("[" + code + "] " + msg));
     } else {
+      this.appendLog({
+        tool: pending.toolName,
+        status: "ok",
+        id: response.id,
+        script: pending.script,
+      });
       pending.resolve(response.result.data ?? response.result);
     }
   }
@@ -206,6 +221,7 @@ export class AEBridge {
     const payload: CommandPayload = { id, script };
     return new Promise<unknown>((resolve, reject) => {
       const timeout = setTimeout(() => {
+        const pending = this._pendingCommands.get(id);
         this._pendingCommands.delete(id);
         const processedFile = commandFile + ".processed";
         const responseFile = commandFile + ".response";
@@ -213,18 +229,44 @@ export class AEBridge {
         const hint = wasProcessed
           ? "After Effects processed the command but no response was written."
           : "After Effects did not pick up the command — is the AE MCP Bridge panel open?";
+        const errMsg = `[TIMEOUT] Tool "${toolName}" timed out after ${COMMAND_TIMEOUT / 1000}s. ${hint}`;
+        if (pending) {
+          this.appendLog({
+            tool: pending.toolName,
+            status: "error",
+            id,
+            script: pending.script,
+            error: errMsg,
+          });
+        }
         this.safeDelete(commandFile);
         this.safeDelete(processedFile);
         this.safeDelete(responseFile);
-        reject(new Error(`[TIMEOUT] Tool "${toolName}" timed out after ${COMMAND_TIMEOUT / 1000}s. ${hint}`));
+        reject(new Error(errMsg));
       }, COMMAND_TIMEOUT);
-      this._pendingCommands.set(id, { resolve, reject, timeout, commandFile });
+      const pending: PendingCommand = {
+        resolve,
+        reject,
+        timeout,
+        commandFile,
+        toolName,
+        script,
+      };
+      this._pendingCommands.set(id, pending);
       try {
         fs.writeFileSync(commandFile, JSON.stringify(payload, null, 2), { encoding: "utf-8", flag: "w" });
       } catch (writeErr) {
         clearTimeout(timeout);
         this._pendingCommands.delete(id);
-        reject(new Error("[BRIDGE_WRITE_ERROR] Could not write command file: " + writeErr));
+        const errMsg = "[BRIDGE_WRITE_ERROR] Could not write command file: " + writeErr;
+        this.appendLog({
+          tool: toolName,
+          status: "error",
+          id,
+          script,
+          error: errMsg,
+        });
+        reject(new Error(errMsg));
       }
     });
   }
@@ -243,6 +285,35 @@ export class AEBridge {
 
   private safeDelete(filePath: string): void {
     try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* ignore */ }
+  }
+
+  /**
+   * Appends a JSONL entry to the daily activity log. Same folder as commands.
+   * Filename: ae-mcp-activity-YYYY-MM-DD.log
+   */
+  private appendLog(entry: {
+    tool: string;
+    status: "ok" | "error";
+    id: string;
+    script: string;
+    error?: string;
+  }): void {
+    try {
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const logPath = path.join(this._commandsDir, `ae-mcp-activity-${dateStr}.log`);
+      const line =
+        JSON.stringify({
+          ts: new Date().toISOString(),
+          tool: entry.tool,
+          status: entry.status,
+          id: entry.id,
+          script: entry.script,
+          ...(entry.error && { error: entry.error }),
+        }) + "\n";
+      fs.appendFileSync(logPath, line, "utf-8");
+    } catch {
+      /* best-effort — don't fail the main flow */
+    }
   }
 }
 
