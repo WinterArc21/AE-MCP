@@ -7,8 +7,63 @@ const CONFIG_FILE_NAME = "ae-mcp-commands-dir.txt";
 const POLL_INTERVAL = 100;
 const COMMAND_TIMEOUT = 60000;
 
-function getConfigFilePath(): string {
-  return path.join(os.homedir(), "Documents", CONFIG_FILE_NAME);
+/**
+ * Returns all possible Documents folder paths where the config file should be
+ * written. On Windows with OneDrive, `Folder.myDocuments` in ExtendScript may
+ * resolve to the OneDrive-backed Documents folder rather than the standard
+ * `os.homedir()/Documents`. We write to every candidate so the CEP panel
+ * always finds the config regardless of which path ExtendScript uses.
+ */
+function getAllConfigFilePaths(): string[] {
+  const home = os.homedir();
+  const candidates = new Set<string>();
+
+  // Standard Documents path (what Node's os.homedir() gives)
+  candidates.add(path.join(home, "Documents", CONFIG_FILE_NAME));
+
+  if (os.platform() === "win32") {
+    // OneDrive variants — ExtendScript's Folder.myDocuments often points here
+    candidates.add(path.join(home, "OneDrive", "Documents", CONFIG_FILE_NAME));
+    candidates.add(path.join(home, "OneDrive - Personal", "Documents", CONFIG_FILE_NAME));
+
+    // Also check USERPROFILE if it differs from homedir (rare but possible)
+    const userProfile = process.env.USERPROFILE;
+    if (userProfile && userProfile !== home) {
+      candidates.add(path.join(userProfile, "Documents", CONFIG_FILE_NAME));
+      candidates.add(path.join(userProfile, "OneDrive", "Documents", CONFIG_FILE_NAME));
+    }
+  }
+
+  return Array.from(candidates);
+}
+
+/** Write config to all candidate paths so the CEP panel finds it. */
+function writeConfigToAllLocations(content: string): void {
+  for (const configPath of getAllConfigFilePaths()) {
+    try {
+      const dir = path.dirname(configPath);
+      if (fs.existsSync(dir)) {
+        fs.writeFileSync(configPath, content, "utf-8");
+      }
+    } catch {
+      /* best-effort — skip paths that don't exist or aren't writable */
+    }
+  }
+}
+
+/** Read config from the first candidate path that exists and has content. */
+function readConfigFromAnyLocation(): string | null {
+  for (const configPath of getAllConfigFilePaths()) {
+    try {
+      if (fs.existsSync(configPath)) {
+        const content = fs.readFileSync(configPath, "utf-8").trim();
+        if (content.length > 0) return content;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
 }
 
 function resolveCommandsDir(): string {
@@ -16,25 +71,17 @@ function resolveCommandsDir(): string {
   const envOverride = process.env.AE_MCP_COMMANDS_DIR;
   if (envOverride && envOverride.trim().length > 0) {
     const resolved = path.resolve(envOverride.trim());
-    try {
-      fs.writeFileSync(getConfigFilePath(), resolved, "utf-8");
-    } catch {
-      /* ignore — config write is best-effort for CEP sync */
-    }
+    writeConfigToAllLocations(resolved);
     return resolved;
   }
   // 2. Fallback: config file (so CEP panel can share the same override)
-  try {
-    const configPath = getConfigFilePath();
-    if (fs.existsSync(configPath)) {
-      const content = fs.readFileSync(configPath, "utf-8").trim();
-      if (content.length > 0) return path.resolve(content);
-    }
-  } catch {
-    /* ignore */
-  }
+  const configContent = readConfigFromAnyLocation();
+  if (configContent) return path.resolve(configContent);
   // 3. Default: platform Documents folder
-  return path.join(os.homedir(), "Documents", COMMANDS_DIR_NAME);
+  const defaultDir = path.join(os.homedir(), "Documents", COMMANDS_DIR_NAME);
+  // Write default to all locations so CEP panel is always in sync
+  writeConfigToAllLocations(defaultDir);
+  return defaultDir;
 }
 
 interface PendingCommand {
