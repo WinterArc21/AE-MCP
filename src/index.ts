@@ -10,6 +10,8 @@
  * Bridge:    commands folder (default ~/Documents/ae-mcp-commands/, override via AE_MCP_COMMANDS_DIR)
  */
 
+import "dotenv/config";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
