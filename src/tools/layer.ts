@@ -776,9 +776,12 @@ export function registerLayerTools(server: McpServer): void {
     "Updates one or more properties on an existing layer. " +
       "All parameters except compId and layerIndex are optional — only " +
       "provided values are changed. " +
-      "Transform: position=[x,y]px; scale=[x%,y%] (100=100%); " +
-      "rotation=degrees (positive=clockwise); opacity=0-100; " +
-      "anchorPoint=[x,y]px. " +
+      "Transform value shapes are strict: " +
+      "position = [x, y] or [x, y, z] pixels; " +
+      "scale = [x, y] or [x, y, z] percent; " +
+      "rotation = single number in degrees (positive = clockwise); " +
+      "opacity = single number 0-100; " +
+      "anchorPoint = [x, y] or [x, y, z] pixels. " +
       "Time: startTime, inPoint, outPoint are seconds relative to the comp. " +
       "Returns the layer's current properties after the update.",
     {
@@ -799,31 +802,34 @@ export function registerLayerTools(server: McpServer): void {
         .describe("Layer visibility (true = visible)."),
       position: z
         .array(z.number())
-        .length(2)
+        .min(2)
+        .max(3)
         .optional()
-        .describe("Transform position [x, y] in pixels."),
+        .describe("Transform position [x, y] for 2D layers or [x, y, z] for 3D layers, in pixels."),
       scale: z
         .array(z.number())
-        .length(2)
+        .min(2)
+        .max(3)
         .optional()
         .describe(
-          "Transform scale [x%, y%] where 100 means 100% (original size)."
+          "Transform scale [x%, y%] for 2D layers or [x%, y%, z%] for 3D layers."
         ),
       rotation: z
         .number()
         .optional()
-        .describe("Transform rotation in degrees. Positive = clockwise."),
+        .describe("Transform rotation in degrees. Single number only; positive = clockwise."),
       opacity: z
         .number()
         .min(0)
         .max(100)
         .optional()
-        .describe("Transform opacity 0-100."),
+        .describe("Transform opacity 0-100. Single number only."),
       anchorPoint: z
         .array(z.number())
-        .length(2)
+        .min(2)
+        .max(3)
         .optional()
-        .describe("Transform anchor point [x, y] in pixels."),
+        .describe("Transform anchor point [x, y] for 2D layers or [x, y, z] for 3D layers, in pixels."),
       startTime: z
         .number()
         .optional()
@@ -869,42 +875,38 @@ export function registerLayerTools(server: McpServer): void {
       }
 
       const xfLines: string[] = [];
-      if (position !== undefined) {
-        xfLines.push(
-          '    xf.property("Position").setValue([' +
-            position[0] +
-            ", " +
-            position[1] +
-            "]);\n"
+      // Helper: set value but fail fast if property already has keyframes
+      function setValueOrFail(propName: string, valueLit: string): string {
+        return (
+          '    var _p = xf.property("' + propName + '");\n' +
+          "    if (_p.numKeys > 0) {\n" +
+          '      return { success: false, error: { message: "Transform property \\"' +
+            escapeString(propName) +
+            '\\" has " + _p.numKeys + " keyframes. Use set_property with clearKeyframes=true, or use set_property_keyframes.", code: "HAS_KEYFRAMES" } };\n' +
+          "    }\n" +
+          "    _p.setValue(" + valueLit + ");\n"
         );
+      }
+      if (position !== undefined) {
+        xfLines.push(setValueOrFail("Position", "[" + position.join(", ") + "]"));
       }
       if (scale !== undefined) {
-        xfLines.push(
-          '    xf.property("Scale").setValue([' + scale[0] + ", " + scale[1] + "]);\n"
-        );
+        xfLines.push(setValueOrFail("Scale", "[" + scale.join(", ") + "]"));
       }
       if (rotation !== undefined) {
-        xfLines.push('    xf.property("Rotation").setValue(' + rotation + ");\n");
+        xfLines.push(setValueOrFail("Rotation", String(rotation)));
       }
       if (opacity !== undefined) {
-        xfLines.push('    xf.property("Opacity").setValue(' + opacity + ");\n");
+        xfLines.push(setValueOrFail("Opacity", String(opacity)));
       }
       if (anchorPoint !== undefined) {
-        xfLines.push(
-          '    xf.property("Anchor Point").setValue([' +
-            anchorPoint[0] +
-            ", " +
-            anchorPoint[1] +
-            "]);\n"
-        );
+        xfLines.push(setValueOrFail("Anchor Point", "[" + anchorPoint.join(", ") + "]"));
       }
 
       const xfBlock =
         xfLines.length > 0
-          ? "  try {\n" +
-            '    var xf = layer.property("Transform");\n' +
-            xfLines.join("") +
-            "  } catch (xfErr) {}\n"
+          ? '    var xf = layer.property("Transform");\n' +
+            xfLines.join("")
           : "";
 
       const script = wrapWithReturn(

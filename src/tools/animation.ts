@@ -31,6 +31,7 @@ import {
   setKeyframe,
   arrayToAE,
 } from "../script-builder.js";
+import { validateTransformValue, valueShapeError } from "../value-validator.js";
 
 // ---------------------------------------------------------------------------
 // Local helpers
@@ -114,8 +115,12 @@ const transformPropertySchema = z
 const propertyValueSchema = z
   .union([z.number(), z.array(z.number())])
   .describe(
-    "Property value: a number for scalar properties (Opacity 0-100, Rotation in degrees), " +
-    "or an [x, y] array for vector properties (Position in pixels, Scale in %, Anchor Point in pixels)."
+    "Property value — shape must match the property exactly: " +
+    "Opacity = single number (0-100); " +
+    "Rotation = single number (degrees); " +
+    "Position = [x, y] or [x, y, z] array; " +
+    "Anchor Point = [x, y] or [x, y, z] array; " +
+    "Scale = [x, y] or [x, y, z] array."
   );
 
 const easingTypeSchema = z
@@ -140,6 +145,11 @@ export async function addKeyframeHelper(params: {
   value: number | number[];
 }) {
   const { compId, layerIndex, property, time, value } = params;
+
+  // Validate value dimensions match property
+  const valErr = validateTransformValue(params.property, params.value);
+  if (valErr) return valueShapeError(valErr);
+
   const propExpr = transformProp("layer", property);
   const valLit = valueLiteral(value);
 
@@ -318,10 +328,12 @@ export function registerAnimationTools(server: McpServer): void {
   // ─── add_keyframes_batch ──────────────────────────────────────────────────
   server.tool(
     "add_keyframes_batch",
-    "Set multiple keyframes on a single layer property in one call. " +
-    "More efficient than calling add_keyframe repeatedly when all values are known upfront. " +
-    "All keyframes must be for the same property. " +
-    "After Effects automatically sorts keyframes by time — order in the array doesn't matter. " +
+    "Set multiple keyframes on a single transform property in one call. " +
+    "Value shape must match the property exactly: " +
+    "Position/Anchor Point = [x, y] or [x, y, z]; " +
+    "Scale = [x, y] or [x, y, z]; " +
+    "Rotation/Opacity = single number only. " +
+    "More efficient than calling add_keyframe repeatedly. " +
     "Easing is NOT applied automatically — follow up with set_all_keyframes_easing if needed.",
     {
       compId: z.number().int().positive().describe("Numeric ID of the composition"),
@@ -335,9 +347,15 @@ export function registerAnimationTools(server: McpServer): void {
           })
         )
         .min(1)
-        .describe("Array of { time, value } keyframes to set"),
+        .describe("Array of { time, value } keyframes. Value shape must match property: Position/Anchor Point = [x, y] or [x, y, z]; Scale = [x, y] or [x, y, z]; Rotation/Opacity = single number."),
     },
     async ({ compId, layerIndex, property, keyframes }) => {
+      // Validate value dimensions match property
+      for (let i = 0; i < keyframes.length; i++) {
+        const valErr = validateTransformValue(property, keyframes[i].value);
+        if (valErr) return valueShapeError(valErr + " (at keyframe index " + i + ")");
+      }
+
       const propExpr = transformProp("layer", property);
 
       let kfLines = "";

@@ -8,7 +8,7 @@
     "ae-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "esbuild src/index.ts src/bridge.ts src/script-builder.ts src/tools/project.ts src/tools/composition.ts src/tools/layer.ts src/tools/animation.ts src/tools/expression.ts src/tools/motion-design.ts src/tools/render.ts src/tools/script.ts src/tools/effects.ts src/tools/blend-modes.ts src/tools/masks.ts src/tools/three-d.ts src/tools/text-animators.ts src/tools/shape-operations.ts src/tools/precomp.ts src/tools/markers.ts src/tools/layer-settings.ts src/tools/properties.ts src/tools/typography.ts src/tools/shape-paths.ts src/tools/project-items.ts src/tools/design-knowledge.ts src/tools/compound.ts src/tools/qa.ts --outdir=dist --outbase=src --platform=node --format=esm --target=node18",
+    "build": "esbuild src/index.ts src/bridge.ts src/script-builder.ts src/value-validator.ts src/tools/project.ts src/tools/composition.ts src/tools/layer.ts src/tools/animation.ts src/tools/expression.ts src/tools/motion-design.ts src/tools/render.ts src/tools/script.ts src/tools/effects.ts src/tools/blend-modes.ts src/tools/masks.ts src/tools/three-d.ts src/tools/text-animators.ts src/tools/shape-operations.ts src/tools/precomp.ts src/tools/markers.ts src/tools/layer-settings.ts src/tools/properties.ts src/tools/typography.ts src/tools/shape-paths.ts src/tools/project-items.ts src/tools/design-knowledge.ts src/tools/compound.ts src/tools/qa.ts --outdir=dist --outbase=src --platform=node --format=esm --target=node18",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "install-extension": "node scripts/install-extension.js",

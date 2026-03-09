@@ -26,6 +26,7 @@ import {
   findCompById,
   findLayerByIndex,
 } from "../script-builder.js";
+import { validateTransformValue, valueShapeError } from "../value-validator.js";
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -426,6 +427,10 @@ export function registerPropertyTools(server: McpServer): void {
   server.tool(
     "set_property",
     "Set the value of any layer property. Use list_property_tree to discover property paths. " +
+      "For transform properties, value shape must match exactly: " +
+      "Position/Anchor Point = [x, y] or [x, y, z]; " +
+      "Scale = [x, y] or [x, y, z]; " +
+      "Rotation/Opacity = single number only. " +
       "If the property has keyframes, set clearKeyframes=true to remove them first, " +
       "or use set_property_keyframes instead.",
     {
@@ -443,8 +448,11 @@ export function registerPropertyTools(server: McpServer): void {
       value: z
         .union([z.number(), z.array(z.number()), z.boolean(), z.string()])
         .describe(
-          "Value to set. Number for scalar properties, array of numbers for vector properties, " +
-          "boolean for on/off properties, string for text properties."
+          "Value to set. For transform properties: " +
+          "Position/Anchor Point = [x, y] or [x, y, z]; " +
+          "Scale = [x, y] or [x, y, z]; " +
+          "Rotation/Opacity = single number only. " +
+          "Boolean for on/off properties, string for text properties."
         ),
       clearKeyframes: z
         .boolean()
@@ -453,6 +461,25 @@ export function registerPropertyTools(server: McpServer): void {
     },
     async ({ compId, layerIndex, propertyPath, value, clearKeyframes }) => {
       const clearKf = clearKeyframes === true;
+      // Validate value shape for known transform properties
+      const lastSeg = propertyPath[propertyPath.length - 1];
+      const propHint = lastSeg.name || lastSeg.matchName || "";
+      // Map common match names to friendly names for validation
+      const matchNameMap: Record<string, string> = {
+        "ADBE Position": "Position",
+        "ADBE Scale": "Scale",
+        "ADBE Rotate Z": "Rotation",
+        "ADBE Opacity": "Opacity",
+        "ADBE Anchor Point": "Anchor Point",
+        "ADBE Position_0": "Position",
+        "ADBE Position_1": "Position",
+        "ADBE Position_2": "Position",
+      };
+      const knownProp = matchNameMap[propHint] || (["Position", "Scale", "Rotation", "Opacity", "Anchor Point"].includes(propHint) ? propHint : null);
+      if (knownProp) {
+        const valErr = validateTransformValue(knownProp, value);
+        if (valErr) return valueShapeError(valErr);
+      }
       const isStringValue = typeof value === "string";
 
       // Serialize the value to ES3 literal

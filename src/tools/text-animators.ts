@@ -24,6 +24,7 @@ import {
   findCompById,
   findLayerByIndex,
 } from "../script-builder.js";
+import { validateTransformValue, valueShapeError } from "../value-validator.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,6 +53,12 @@ function animatorPropToAE(prop: string): string {
     "Stroke Color":    "ADBE Text Stroke Color",
     "Tracking":        "ADBE Text Tracking Amount",
     "Tracking Amount": "ADBE Text Tracking Amount",
+    "Skew":            "ADBE Text Skew",
+    "Skew Axis":       "ADBE Text Skew Axis",
+    "Blur":            "ADBE Text Blur",
+    "Line Anchor":     "ADBE Text Line Anchor",
+    "Line Spacing":    "ADBE Text Line Spacing",
+    "Character Offset":"ADBE Text Character Offset",
   };
   return map[prop] ?? prop;
 }
@@ -197,10 +204,14 @@ export function registerTextAnimatorTools(server: McpServer): void {
       "For example: add an Opacity animator, then call this tool to set Opacity to 0 " +
       "so that characters outside the range selector appear invisible. " +
       "animatorIndex is 1-based (1 = first animator on the layer). " +
-      "property is the name of the property within the animator (e.g. 'Opacity', 'Position', 'Rotation'). " +
-      "value can be a number (for scalar properties like Opacity 0-100, Rotation in degrees) " +
-      "or an [x, y] or [x, y, z] array (for Position, Scale). " +
-      "To animate the range selector itself (for a typewriter reveal effect), " +
+      "Value shape must match the property exactly: " +
+      "Opacity = single number (0-100); " +
+      "Rotation = single number (degrees); " +
+      "Tracking/Tracking Amount = single number; " +
+      "Position = [x, y] or [x, y, z]; " +
+      "Scale = [x, y] or [x, y, z]; " +
+      "Fill Color/Stroke Color = [r, g, b] (0-1 range). " +
+      "To animate the range selector itself, " +
       "use add_keyframe on the layer's Text > Animators > [n] > Selector > Start or End property.",
     {
       compId: z
@@ -219,18 +230,28 @@ export function registerTextAnimatorTools(server: McpServer): void {
         .positive()
         .describe("1-based index of the text animator on this layer"),
       property: z
-        .string()
+        .enum(["Position", "Scale", "Rotation", "Opacity", "Fill Color", "Stroke Color", "Tracking", "Tracking Amount", "Skew", "Skew Axis", "Blur", "Line Anchor", "Line Spacing", "Character Offset"])
         .describe(
-          "Property to set within the animator. Common values: " +
-          "'Opacity' (number 0-100), 'Rotation' (degrees), " +
-          "'Position' ([x, y] pixels), 'Scale' ([x, y] percent), " +
-          "'Tracking Amount' (number), 'Fill Color' ([r,g,b] 0-1)"
+          "Property to set within the animator. " +
+          "Opacity (single number 0-100), Rotation (single number, degrees), " +
+          "Position ([x, y] or [x, y, z] pixels), Scale ([x, y] or [x, y, z] percent), " +
+          "Tracking/Tracking Amount (single number), Fill Color/Stroke Color ([r, g, b] 0-1)"
         ),
       value: z
         .union([z.number(), z.array(z.number())])
-        .describe("Value to set. Number for scalar properties, array for vector properties"),
+        .describe(
+          "Value to set. Shape must match property: " +
+          "Opacity/Rotation/Tracking = single number; " +
+          "Position = [x, y] or [x, y, z]; " +
+          "Scale = [x, y] or [x, y, z]; " +
+          "Fill Color/Stroke Color = [r, g, b]."
+        ),
     },
     async ({ compId, layerIndex, animatorIndex, property, value }) => {
+      // Validate value dimensions match property
+      const valErr = validateTransformValue(property, value);
+      if (valErr) return valueShapeError(valErr);
+
       const valLiteral = Array.isArray(value)
         ? "[" + value.join(",") + "]"
         : String(value);
