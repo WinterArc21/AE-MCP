@@ -16,7 +16,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { bridge } from "../bridge.js";
+import { bridge, RENDER_TIMEOUT } from "../bridge.js";
 import {
   escapeString,
   wrapWithReturn,
@@ -34,6 +34,11 @@ function textResult(data: unknown) {
 
 async function runScript(script: string, toolName: string) {
   const result = await bridge.executeScript(script, toolName);
+  return textResult(result);
+}
+
+async function runScriptWithTimeout(script: string, toolName: string, timeoutMs: number) {
+  const result = await bridge.executeScriptWithTimeout(script, toolName, timeoutMs);
   return textResult(result);
 }
 
@@ -193,7 +198,7 @@ export function registerRenderTools(server: McpServer): void {
 
       const script = wrapWithReturn(body);
       try {
-        return runScript(script, "start_render");
+        return runScriptWithTimeout(script, "start_render", RENDER_TIMEOUT);
       } catch (err) {
         return { content: [{ type: "text", text: "Error: " + String(err) }], isError: true };
       }
@@ -264,13 +269,22 @@ export function registerRenderTools(server: McpServer): void {
         "if (typeof _cfComp.saveFrameToPng !== 'function') {\n" +
         '  return { success: false, error: { message: "saveFrameToPng is not available in this version of After Effects. Requires CC 2014 (v13.0) or later.", code: "UNSUPPORTED_AE_VERSION" } };\n' +
         "}\n" +
-        // Capture the frame
+        // Open comp in viewer and set time so AE renders the correct frame
         "_cfComp.openInViewer();\n" +
-        "$.sleep(500);\n" +
-        "_cfComp.saveFrameToPng(_cfTime, _cfFile);\n" +
+        "_cfComp.time = _cfTime;\n" +
+        "$.sleep(1000);\n" +
+        // Retry loop: try up to 3 times with increasing delays
+        "var _cfCaptured = false;\n" +
+        "for (var _cfRetry = 0; _cfRetry < 3; _cfRetry++) {\n" +
+        "  try {\n" +
+        "    _cfComp.saveFrameToPng(_cfTime, _cfFile);\n" +
+        "  } catch (_cfSaveErr) {}\n" +
+        "  $.sleep(500 + _cfRetry * 500);\n" +
+        "  if (_cfFile.exists) { _cfCaptured = true; break; }\n" +
+        "}\n" +
         // Verify the file was created
-        "if (!_cfFile.exists) {\n" +
-        '  return { success: false, error: { message: "PNG file was not created. The frame capture may have failed.", code: "CAPTURE_FAILED" } };\n' +
+        "if (!_cfCaptured) {\n" +
+        '  return { success: false, error: { message: "PNG file was not created after 3 attempts. The frame capture may have failed. Ensure the composition is not mid-render and the viewer panel is visible.", code: "CAPTURE_FAILED" } };\n' +
         "}\n" +
         // Return result
         "return { success: true, data: {\n" +
@@ -284,7 +298,7 @@ export function registerRenderTools(server: McpServer): void {
 
       const script = wrapWithReturn(body);
       try {
-        return runScript(script, "capture_frame");
+        return runScriptWithTimeout(script, "capture_frame", RENDER_TIMEOUT);
       } catch (err) {
         return {
           content: [{ type: "text", text: "Error: " + String(err) }],
@@ -347,7 +361,7 @@ export function registerRenderTools(server: McpServer): void {
       const body =
         findCompById("_cfsComp", compId) +
         "_cfsComp.openInViewer();\n" +
-        "$.sleep(400);\n" +
+        "$.sleep(1000);\n" +
         "var _cfsResults = [];\n" +
         "var _cfsStart = " + (startTime ?? 0) + ";\n" +
         "var _cfsEnd = " + (endTime !== undefined ? endTime : "_cfsComp.duration") + ";\n" +
@@ -360,11 +374,15 @@ export function registerRenderTools(server: McpServer): void {
         "  if (_cfsT > _cfsComp.duration) _cfsT = _cfsComp.duration;\n" +
         '  var _cfsFile = new File("' + escapeString(prefix) + '" + _cfsi + ".png");\n' +
         "  var _cfsCaptured = false;\n" +
-        "  try {\n" +
-        "    _cfsComp.saveFrameToPng(_cfsT, _cfsFile);\n" +
-        "    _cfsCaptured = _cfsFile.exists;\n" +
-        "  } catch (_cfsErr) {}\n" +
-        "  if (_cfsi < _cfsCount - 1) { $.sleep(300); }\n" +
+        // Set comp time so AE renders the correct frame, then retry up to 2 times
+        "  _cfsComp.time = _cfsT;\n" +
+        "  for (var _cfsRetry = 0; _cfsRetry < 2; _cfsRetry++) {\n" +
+        "    try {\n" +
+        "      _cfsComp.saveFrameToPng(_cfsT, _cfsFile);\n" +
+        "    } catch (_cfsErr) {}\n" +
+        "    $.sleep(800 + _cfsRetry * 400);\n" +
+        "    if (_cfsFile.exists) { _cfsCaptured = true; break; }\n" +
+        "  }\n" +
         "  _cfsResults.push({\n" +
         "    time: Math.round(_cfsT * 1000) / 1000,\n" +
         "    outputPath: _cfsFile.fsName,\n" +
@@ -379,7 +397,7 @@ export function registerRenderTools(server: McpServer): void {
 
       const script = wrapWithReturn(body);
       try {
-        return runScript(script, "capture_frame_sequence");
+        return runScriptWithTimeout(script, "capture_frame_sequence", RENDER_TIMEOUT);
       } catch (err) {
         return {
           content: [{ type: "text", text: "Error: " + String(err) }],

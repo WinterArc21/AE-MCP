@@ -5,7 +5,9 @@ import * as os from "os";
 const COMMANDS_DIR_NAME = "ae-mcp-commands";
 const CONFIG_FILE_NAME = "ae-mcp-commands-dir.txt";
 const POLL_INTERVAL = 100;
-const COMMAND_TIMEOUT = 60000;
+const DEFAULT_COMMAND_TIMEOUT = 120000;
+const COMMAND_TIMEOUT = parseInt(process.env.AE_MCP_TIMEOUT || String(DEFAULT_COMMAND_TIMEOUT), 10);
+export const RENDER_TIMEOUT = Math.max(COMMAND_TIMEOUT, 300000); // 5 min minimum for render operations
 
 /**
  * Returns all possible Documents folder paths where the config file should be
@@ -213,6 +215,10 @@ export class AEBridge {
   }
 
   async executeScript(script: string, toolName: string): Promise<unknown> {
+    return this.executeScriptWithTimeout(script, toolName, COMMAND_TIMEOUT);
+  }
+
+  async executeScriptWithTimeout(script: string, toolName: string, timeoutMs: number): Promise<unknown> {
     if (this._isShuttingDown) throw new Error("AEBridge is shutting down");
     this.ensureCommandsDir();
     const randomSuffix = Math.random().toString(36).slice(2, 9);
@@ -229,7 +235,7 @@ export class AEBridge {
         const hint = wasProcessed
           ? "After Effects processed the command but no response was written."
           : "After Effects did not pick up the command — is the AE MCP Bridge panel open?";
-        const errMsg = `[TIMEOUT] Tool "${toolName}" timed out after ${COMMAND_TIMEOUT / 1000}s. ${hint}`;
+        const errMsg = `[TIMEOUT] Tool "${toolName}" timed out after ${timeoutMs / 1000}s. ${hint}`;
         if (pending) {
           this.appendLog({
             tool: pending.toolName,
@@ -243,7 +249,7 @@ export class AEBridge {
         this.safeDelete(processedFile);
         this.safeDelete(responseFile);
         reject(new Error(errMsg));
-      }, COMMAND_TIMEOUT);
+      }, timeoutMs);
       const pending: PendingCommand = {
         resolve,
         reject,
