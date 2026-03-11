@@ -50,6 +50,34 @@ const __dirname = path.dirname(__filename);
 const DOCS_EFFECTS_DIR = path.resolve(__dirname, "../../docs/effects");
 
 // ---------------------------------------------------------------------------
+// ES3 runtime helper: normalize array values against prop.value shape
+// ---------------------------------------------------------------------------
+
+const NORMALIZE_EFFECT_VALUE_FN =
+  "function _normalizeEffectValue(prop, rawValue) {\n" +
+  "  var currentValue = null;\n" +
+  "  try { currentValue = prop.value; } catch(e) {}\n" +
+  "  var rawIsArray = (rawValue instanceof Array);\n" +
+  "  var currentIsArray = (currentValue instanceof Array);\n" +
+  "  if (currentIsArray) {\n" +
+  "    if (!rawIsArray) {\n" +
+  "      return { __error: 'Property expects an array value (length ' + currentValue.length + '), got a scalar.' };\n" +
+  "    }\n" +
+  "    var expectedLen = currentValue.length;\n" +
+  "    var out = [];\n" +
+  "    for (var i = 0; i < rawValue.length; i++) out.push(rawValue[i]);\n" +
+  "    if (expectedLen === 4 && out.length === 3) {\n" +
+  "      out.push(1);\n" +
+  "    }\n" +
+  "    if (out.length !== expectedLen) {\n" +
+  "      return { __error: 'Property expects array length ' + expectedLen + ', got ' + out.length + '.' };\n" +
+  "    }\n" +
+  "    return out;\n" +
+  "  }\n" +
+  "  return rawValue;\n" +
+  "}\n";
+
+// ---------------------------------------------------------------------------
 // registerEffectTools
 // ---------------------------------------------------------------------------
 
@@ -150,15 +178,21 @@ export function registerEffectTools(server: McpServer): void {
       if (hasProps) {
         const entries = Object.entries(properties!);
         for (const [propName, propVal] of entries) {
+          const safeVarSuffix = escapeString(propName).replace(/[^a-zA-Z0-9]/g, "");
           propsBlock +=
             "  try {\n" +
-            '    effect.property("' + escapeString(propName) + '").setValue(' +
-            valueToES3(propVal) +
-            ");\n" +
-            "    propsSet++;\n" +
-            "  } catch (propErr" + "_" + escapeString(propName).replace(/[^a-zA-Z0-9]/g, "") + ") {\n" +
-            '    propErrors.push("' + escapeString(propName) + ': " + propErr' +
-            "_" + escapeString(propName).replace(/[^a-zA-Z0-9]/g, "") + '.toString());\n' +
+            '    var _p_' + safeVarSuffix + ' = effect.property("' + escapeString(propName) + '");\n' +
+            '    var _v_' + safeVarSuffix + ' = _normalizeEffectValue(_p_' + safeVarSuffix + ', ' +
+            valueToES3(propVal) + ");\n" +
+            '    if (_v_' + safeVarSuffix + ' && _v_' + safeVarSuffix + '.__error) {\n' +
+            '      propErrors.push("' + escapeString(propName) + ': " + _v_' + safeVarSuffix + '.__error);\n' +
+            "    } else {\n" +
+            '      _p_' + safeVarSuffix + '.setValue(_v_' + safeVarSuffix + ');\n' +
+            "      propsSet++;\n" +
+            "    }\n" +
+            "  } catch (propErr_" + safeVarSuffix + ") {\n" +
+            '    propErrors.push("' + escapeString(propName) + ': " + propErr_' +
+            safeVarSuffix + '.toString());\n' +
             "  }\n";
         }
       }
@@ -171,6 +205,7 @@ export function registerEffectTools(server: McpServer): void {
       const inner =
         findCompById("comp", compId) +
         findLayerByIndex("layer", "comp", layerIndex) +
+        (hasProps ? NORMALIZE_EFFECT_VALUE_FN : "") +
         'var effect = layer.property("Effects").addProperty("' +
         escapeString(effectMatchName) +
         '");\n' +
@@ -453,8 +488,8 @@ export function registerEffectTools(server: McpServer): void {
 
       const setLine =
         time !== undefined
-          ? "  prop.setValueAtTime(" + time + ", " + valueLit + ");\n"
-          : "  prop.setValue(" + valueLit + ");\n";
+          ? "  prop.setValueAtTime(" + time + ", _val);\n"
+          : "  prop.setValue(_val);\n";
 
       const inner =
         findCompById("comp", compId) +
@@ -471,6 +506,11 @@ export function registerEffectTools(server: McpServer): void {
         '  return { success: false, error: { message: "Property not found: ' +
         escapeString(propertyName) +
         '", code: "PROPERTY_NOT_FOUND" } };\n' +
+        "}\n" +
+        NORMALIZE_EFFECT_VALUE_FN +
+        "var _val = _normalizeEffectValue(prop, " + valueLit + ");\n" +
+        "if (_val && _val.__error) {\n" +
+        '  return { success: false, error: { message: _val.__error, code: "INVALID_VALUE" } };\n' +
         "}\n" +
         setLine +
         "return {\n" +

@@ -131,10 +131,20 @@ export function setKeyframe(propExpr: string, time: number, value: string): stri
 
 export function easyEaseKeyframe(propExpr: string, keyIndex: number, influence = 33.33): string {
   const ki = "_ke" + keyIndex;
+  const suffix = "_ee" + keyIndex;
   return (
     "var " + ki + " = new KeyframeEase(0, " + influence + ");\n" +
     propExpr + ".setInterpolationTypeAtKey(" + keyIndex + ", KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);\n" +
-    propExpr + ".setTemporalEaseAtKey(" + keyIndex + ", [" + ki + "], [" + ki + "]);\n"
+    "var _dims" + suffix + " = 1;\n" +
+    "try {\n" +
+    "  var _kv" + suffix + " = " + propExpr + ".keyValue(" + keyIndex + ");\n" +
+    "  if (_kv" + suffix + " instanceof Array) { _dims" + suffix + " = _kv" + suffix + ".length; }\n" +
+    "} catch(e) {}\n" +
+    "var _eArr" + suffix + " = [];\n" +
+    "for (var _di" + suffix + " = 0; _di" + suffix + " < _dims" + suffix + "; _di" + suffix + "++) {\n" +
+    "  _eArr" + suffix + ".push(" + ki + ");\n" +
+    "}\n" +
+    propExpr + ".setTemporalEaseAtKey(" + keyIndex + ", _eArr" + suffix + ", _eArr" + suffix + ");\n"
   );
 }
 

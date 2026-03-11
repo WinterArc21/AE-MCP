@@ -279,19 +279,16 @@ export function registerLayerTools(server: McpServer): void {
       italic,
       justification,
     }) => {
-      // Resolve font style string
-      let fontStyle = "Regular";
-      if (bold && italic) {
-        fontStyle = "BoldItalic";
-      } else if (bold) {
-        fontStyle = "Bold";
-      } else if (italic) {
-        fontStyle = "Italic";
-      }
-
       const fillColor = color ? colorLiteral(color) : "[1, 1, 1]";
       const fontName = font ? escapeString(font) : "ArialMT";
       const fSize = fontSize !== undefined ? fontSize : 72;
+
+      const fauxBoldLine = bold
+        ? "  textDoc.fauxBold = true;\n"
+        : "";
+      const fauxItalicLine = italic
+        ? "  textDoc.fauxItalic = true;\n"
+        : "";
 
       const justMap: Record<string, string> = {
         LEFT: "ParagraphJustification.LEFT_JUSTIFY",
@@ -337,9 +334,8 @@ export function registerLayerTools(server: McpServer): void {
           "  textDoc.fillColor = " +
           fillColor +
           ";\n" +
-          '  textDoc.fontStyle = "' +
-          fontStyle +
-          '";\n' +
+          fauxBoldLine +
+          fauxItalicLine +
           justLine +
           '  textLayer.property("Source Text").setValue(textDoc);\n' +
           positionLine +

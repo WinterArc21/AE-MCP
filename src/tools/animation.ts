@@ -52,8 +52,36 @@ function valueLiteral(value: number | number[]): string {
 }
 
 /**
+ * ES3 helper snippet: build a KeyframeEase array matching the property's
+ * dimension count (1D for Opacity/Rotation, 2D for Scale/Position, 3D if 3D enabled).
+ * Determines dimension count at runtime from keyValue().
+ */
+function buildDimensionAwareEaseSnippet(
+  propExpr: string,
+  kfIdxExpr: string,
+  easeVar: string,
+  suffix: string
+): string {
+  return (
+    "var _dims" + suffix + " = 1;\n" +
+    "try {\n" +
+    "  var _kv" + suffix + " = " + propExpr + ".keyValue(" + kfIdxExpr + ");\n" +
+    "  if (_kv" + suffix + " instanceof Array) { _dims" + suffix + " = _kv" + suffix + ".length; }\n" +
+    "} catch(e) {}\n" +
+    "var _eArr" + suffix + " = [];\n" +
+    "for (var _di" + suffix + " = 0; _di" + suffix + " < _dims" + suffix + "; _di" + suffix + "++) {\n" +
+    "  _eArr" + suffix + ".push(" + easeVar + ");\n" +
+    "}\n" +
+    propExpr + ".setTemporalEaseAtKey(" + kfIdxExpr +
+    ", _eArr" + suffix + ", _eArr" + suffix + ");\n"
+  );
+}
+
+/**
  * Build ES3 easing snippet for a specific keyframe index expression.
  * Uses unique variable names per suffix to prevent collisions inside loops.
+ * Handles multi-dimensional properties (Scale, Position) by detecting
+ * dimension count at runtime from keyValue().
  */
 function buildEasingAtIndex(
   propExpr: string,
@@ -79,8 +107,7 @@ function buildEasingAtIndex(
         propExpr + ".setInterpolationTypeAtKey(" + kfIdxExpr +
         ", KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.LINEAR);\n" +
         "var _eiIn" + suffix + " = new KeyframeEase(0, 33);\n" +
-        propExpr + ".setTemporalEaseAtKey(" + kfIdxExpr +
-        ", [_eiIn" + suffix + "], [_eiIn" + suffix + "]);\n"
+        buildDimensionAwareEaseSnippet(propExpr, kfIdxExpr, "_eiIn" + suffix, "_ei" + suffix)
       );
 
     case "ease_out":
@@ -88,8 +115,7 @@ function buildEasingAtIndex(
         propExpr + ".setInterpolationTypeAtKey(" + kfIdxExpr +
         ", KeyframeInterpolationType.LINEAR, KeyframeInterpolationType.BEZIER);\n" +
         "var _eoOut" + suffix + " = new KeyframeEase(0, 33);\n" +
-        propExpr + ".setTemporalEaseAtKey(" + kfIdxExpr +
-        ", [_eoOut" + suffix + "], [_eoOut" + suffix + "]);\n"
+        buildDimensionAwareEaseSnippet(propExpr, kfIdxExpr, "_eoOut" + suffix, "_eo" + suffix)
       );
 
     case "ease_in_out":
@@ -98,8 +124,7 @@ function buildEasingAtIndex(
         propExpr + ".setInterpolationTypeAtKey(" + kfIdxExpr +
         ", KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);\n" +
         "var _eio" + suffix + " = new KeyframeEase(0, 33);\n" +
-        propExpr + ".setTemporalEaseAtKey(" + kfIdxExpr +
-        ", [_eio" + suffix + "], [_eio" + suffix + "]);\n"
+        buildDimensionAwareEaseSnippet(propExpr, kfIdxExpr, "_eio" + suffix, "_eio2" + suffix)
       );
   }
 }
