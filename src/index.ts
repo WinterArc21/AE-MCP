@@ -7,7 +7,8 @@
  * commands to the AE MCP Bridge CEP panel running inside After Effects.
  *
  * Transport: stdio (standard for MCP)
- * Bridge:    commands folder (default ~/Documents/ae-mcp-commands/, override via AE_MCP_COMMANDS_DIR)
+ * Bridge:    commands folder (default ~/Documents/ae-mcp-commands/,
+ *            override via ae-mcp.config.json)
  */
 
 import "dotenv/config";
@@ -39,7 +40,6 @@ import { registerPropertyTools } from "./tools/properties.js";
 import { registerTypographyTools } from "./tools/typography.js";
 import { registerShapePathTools } from "./tools/shape-paths.js";
 import { registerProjectItemTools } from "./tools/project-items.js";
-import { registerDesignKnowledgeTools } from "./tools/design-knowledge.js";
 import { registerCompoundTools } from "./tools/compound.js";
 import { registerQATools } from "./tools/qa.js";
 
@@ -79,10 +79,7 @@ registerTypographyTools(server);
 registerShapePathTools(server);
 registerProjectItemTools(server);
 
-// Register design knowledge tools (design references + golden examples)
-registerDesignKnowledgeTools(server);
-
-// Register compound tools (Phase 2 — high-level motion design tools)
+// Register compound tools (high-level motion design tools)
 registerCompoundTools(server);
 
 // Register QA tools (Phase 4 — critique, polish, auto-fix)

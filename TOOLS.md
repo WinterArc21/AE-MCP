@@ -2,7 +2,7 @@
 
 Canonical API reference for the shipped MCP tool surface.
 
-- Total tools: `77`
+- Total tools: `75`
 - Server version: `v2.0.0`
 - Source of truth: `src/tools/*.ts`
 
@@ -660,20 +660,6 @@ Canonical API reference for the shipped MCP tool surface.
 - Args:
 - `script`
 - Returns/features: general escape hatch for unsupported workflows
-
-## Design Knowledge
-
-### `get_design_reference`
-- Purpose: read a design reference document from the knowledge base (easing curves, timing, color palettes, typography, composition rules, texture/depth, transitions, camera animation, shape animation, scene building, expressions library, storytelling)
-- Args:
-- `topic` — topic name, e.g. 'easing-curves', 'transitions', 'expressions-library'
-- Returns/features: full markdown reference content; lists available topics when topic not found
-
-### `get_golden_example`
-- Purpose: return a production-ready golden example — a complete sequence of MCP tool calls for building a specific scene type
-- Args:
-- `sceneType` — e.g. 'lower-third-corporate', 'title-card-cinematic', 'kinetic-typography'
-- Returns/features: JSON with exact tool calls and parameters using $compId/$layerIndex_N placeholders; lists available examples when scene type not found
 
 ## Compound Tools
 

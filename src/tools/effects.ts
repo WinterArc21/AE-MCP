@@ -8,9 +8,9 @@
  *   - remove_effect           Remove an effect by index or name
  *   - get_effect_properties   Inspect all properties of an applied effect
  *   - set_effect_property     Set a single property on an applied effect
- *   - list_layer_effects      List all effects on a layer
- *   - get_effect_docs         Read documentation for an effect from docs/ folder
- *   - list_available_effects  Return a comprehensive catalog of AE effects by category
+ *
+ * Helper (not registered as MCP tools):
+ *   - listLayerEffectsHelper  List effects on a layer (for internal/compound use)
  *
  * All ExtendScript is ES3-compatible (var only, no arrow functions,
  * no template literals, string concatenation only).
@@ -19,9 +19,6 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import * as fs from "fs";
-import * as path from "path";
-import { fileURLToPath } from "url";
 import { bridge } from "../bridge.js";
 import {
   escapeString,
@@ -43,11 +40,6 @@ async function runScript(script: string, toolName: string) {
   const result = await bridge.executeScript(script, toolName);
   return textResult(result);
 }
-
-// Resolve the docs directory relative to this file (works on Windows too)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DOCS_EFFECTS_DIR = path.resolve(__dirname, "../../docs/effects");
 
 // ---------------------------------------------------------------------------
 // ES3 runtime helper: normalize array values against prop.value shape
@@ -566,152 +558,4 @@ export async function listLayerEffectsHelper(params: { compId: number; layerInde
   const script = wrapWithReturn(inner);
 
   return runScript(script, "list_layer_effects");
-}
-
-export async function getEffectDocsHelper(params: { effectName: string }) {
-  const { effectName } = params;
-  // Convert friendly name to filename: lowercase, spaces → hyphens
-  const fileName =
-    effectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
-
-  const filePath = path.join(DOCS_EFFECTS_DIR, fileName);
-
-  // Try to read the exact file
-  if (fs.existsSync(filePath)) {
-    try {
-      const content = fs.readFileSync(filePath, "utf8");
-      return textResult({
-        success: true,
-        data: {
-          effectName,
-          fileName,
-          content,
-        },
-      });
-    } catch (readErr) {
-      return textResult({
-        success: false,
-        error: {
-          message: "Error reading docs file: " + String(readErr),
-          code: "READ_ERROR",
-        },
-      });
-    }
-  }
-
-  // File not found — list available docs
-  let availableDocs: string[] = [];
-  try {
-    if (fs.existsSync(DOCS_EFFECTS_DIR)) {
-      availableDocs = fs
-        .readdirSync(DOCS_EFFECTS_DIR)
-        .filter((f) => f.endsWith(".md"))
-        .map((f) => f.replace(/\.md$/, "").replace(/-/g, " "));
-    }
-  } catch (_listErr) {
-    // ignore
-  }
-
-  return textResult({
-    success: false,
-    error: {
-      message:
-        'No documentation found for "' +
-        effectName +
-        '" (looked for: ' +
-        fileName +
-        ").",
-      code: "DOC_NOT_FOUND",
-    },
-    data: {
-      availableDocs,
-      docsDir: DOCS_EFFECTS_DIR,
-    },
-  });
-}
-
-export async function listAvailableEffectsHelper(_params: Record<string, never> = {}) {
-  const catalog = {
-    "Blur & Sharpen": [
-      { name: "Gaussian Blur",      matchName: "ADBE Gaussian Blur 2" },
-      { name: "Directional Blur",   matchName: "ADBE Motion Blur" },
-      { name: "Radial Blur",        matchName: "ADBE Radial Blur" },
-      { name: "Fast Box Blur",      matchName: "ADBE Box Blur2" },
-      { name: "Camera Lens Blur",   matchName: "ADBE Camera Lens Blur" },
-      { name: "Sharpen",            matchName: "ADBE Sharpen" },
-      { name: "Unsharp Mask",       matchName: "ADBE Unsharp Mask" },
-    ],
-    "Color Correction": [
-      { name: "Levels",                       matchName: "ADBE Levels2" },
-      { name: "Curves",                       matchName: "ADBE CurvesCustom" },
-      { name: "Hue/Saturation",               matchName: "ADBE HUE SATURATION" },
-      { name: "Tint",                         matchName: "ADBE Tint" },
-      { name: "Tritone",                      matchName: "ADBE Tritone" },
-      { name: "Color Balance",                matchName: "ADBE Color Balance" },
-      { name: "Exposure",                     matchName: "ADBE Exposure2" },
-      { name: "Vibrance",                     matchName: "ADBE Vibrance" },
-    ],
-    "Distort": [
-      { name: "Turbulent Displace",  matchName: "ADBE Turbulent Displace" },
-      { name: "Displacement Map",    matchName: "ADBE Displacement Map" },
-      { name: "Bezier Warp",         matchName: "ADBE Bezier Warp" },
-      { name: "Bulge",               matchName: "ADBE Bulge" },
-      { name: "Magnify",             matchName: "ADBE Magnify" },
-      { name: "Mesh Warp",           matchName: "ADBE Mesh Warp" },
-      { name: "Corner Pin",          matchName: "ADBE Corner Pin" },
-      { name: "Optics Compensation", matchName: "ADBE Optics Compensation" },
-    ],
-    "Generate": [
-      { name: "Fill",             matchName: "ADBE Fill" },
-      { name: "Gradient Ramp",    matchName: "ADBE Ramp" },
-      { name: "Fractal Noise",    matchName: "ADBE Noise2" },
-      { name: "Checkerboard",     matchName: "ADBE Checkerboard" },
-      { name: "Circle",           matchName: "ADBE Circle" },
-      { name: "Ellipse",          matchName: "ADBE Ellipse" },
-      { name: "Stroke",           matchName: "ADBE Stroke" },
-    ],
-    "Stylize": [
-      { name: "Glow",         matchName: "ADBE Glo2" },
-      { name: "Drop Shadow",  matchName: "ADBE Drop Shadow" },
-      { name: "Emboss",       matchName: "ADBE Emboss" },
-      { name: "Find Edges",   matchName: "ADBE Find Edges" },
-      { name: "Mosaic",       matchName: "ADBE Mosaic" },
-      { name: "Motion Tile",  matchName: "ADBE Motion Tile" },
-      { name: "Posterize",    matchName: "ADBE Posterize" },
-    ],
-    "Transition": [
-      { name: "Linear Wipe",      matchName: "ADBE Linear Wipe" },
-      { name: "Radial Wipe",      matchName: "ADBE Radial Wipe" },
-      { name: "Block Dissolve",   matchName: "ADBE Block Dissolve" },
-      { name: "Card Wipe",        matchName: "ADBE Card Wipe" },
-      { name: "Venetian Blinds",  matchName: "ADBE Venetian Blinds" },
-    ],
-    "Perspective": [
-      { name: "3D Glasses",    matchName: "ADBE 3D Glasses" },
-      { name: "Bevel Alpha",   matchName: "ADBE Bevel Alpha" },
-      { name: "Bevel Edges",   matchName: "ADBE Bevel Edges" },
-      { name: "Drop Shadow",   matchName: "ADBE Drop Shadow" },
-    ],
-    "Matte": [
-      { name: "Simple Choker",      matchName: "ADBE Simple Choker" },
-      { name: "Matte Choker",       matchName: "ADBE Matte Choker" },
-      { name: "Refine Hard Matte",  matchName: "ADBE Refine Hard Matte" },
-      { name: "Refine Soft Matte",  matchName: "ADBE Refine Soft Matte" },
-    ],
-    "Channel": [
-      { name: "Set Channels",        matchName: "ADBE Set Channels" },
-      { name: "Shift Channels",      matchName: "ADBE Shift Channels" },
-      { name: "Minimax",             matchName: "ADBE Minimax" },
-      { name: "Remove Color Matting", matchName: "ADBE Remove Color Matting" },
-    ],
-  };
-
-  return textResult({
-    success: true,
-    data: {
-      catalog,
-      tip: 'Use the matchName with apply_effect\'s effectMatchName parameter. ' +
-           'Use get_effect_docs to read detailed documentation for a specific effect.',
-    },
-  });
 }

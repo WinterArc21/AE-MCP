@@ -1,13 +1,44 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { fileURLToPath } from "url";
 
 const COMMANDS_DIR_NAME = "ae-mcp-commands";
-const CONFIG_FILE_NAME = "ae-mcp-commands-dir.txt";
+const SYNC_CONFIG_FILE_NAME = "ae-mcp-commands-dir.txt";
+const PROJECT_CONFIG_FILE_NAME = "ae-mcp.config.json";
 const POLL_INTERVAL = 100;
 const DEFAULT_COMMAND_TIMEOUT = 120000;
 const COMMAND_TIMEOUT = parseInt(process.env.AE_MCP_TIMEOUT || String(DEFAULT_COMMAND_TIMEOUT), 10);
 export const RENDER_TIMEOUT = Math.max(COMMAND_TIMEOUT, 300000); // 5 min minimum for render operations
+
+function getProjectConfigPath(): string {
+  // Works in both src (dev) and dist (single-file bundle) layouts.
+  const thisFileDir = path.dirname(fileURLToPath(import.meta.url));
+  return path.join(thisFileDir, "..", PROJECT_CONFIG_FILE_NAME);
+}
+
+function readCommandsDirFromProjectConfig(): string | null {
+  const configPath = getProjectConfigPath();
+  try {
+    if (!fs.existsSync(configPath)) return null;
+    const raw = fs.readFileSync(configPath, "utf-8");
+    const parsed = JSON.parse(raw) as {
+      commandsDir?: string;
+      commandsDirectory?: string;
+      commandsFolder?: string;
+    };
+    const value =
+      parsed.commandsDir ??
+      parsed.commandsDirectory ??
+      parsed.commandsFolder;
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Returns all possible Documents folder paths where the config file should be
@@ -21,18 +52,18 @@ function getAllConfigFilePaths(): string[] {
   const candidates = new Set<string>();
 
   // Standard Documents path (what Node's os.homedir() gives)
-  candidates.add(path.join(home, "Documents", CONFIG_FILE_NAME));
+  candidates.add(path.join(home, "Documents", SYNC_CONFIG_FILE_NAME));
 
   if (os.platform() === "win32") {
     // OneDrive variants — ExtendScript's Folder.myDocuments often points here
-    candidates.add(path.join(home, "OneDrive", "Documents", CONFIG_FILE_NAME));
-    candidates.add(path.join(home, "OneDrive - Personal", "Documents", CONFIG_FILE_NAME));
+    candidates.add(path.join(home, "OneDrive", "Documents", SYNC_CONFIG_FILE_NAME));
+    candidates.add(path.join(home, "OneDrive - Personal", "Documents", SYNC_CONFIG_FILE_NAME));
 
     // Also check USERPROFILE if it differs from homedir (rare but possible)
     const userProfile = process.env.USERPROFILE;
     if (userProfile && userProfile !== home) {
-      candidates.add(path.join(userProfile, "Documents", CONFIG_FILE_NAME));
-      candidates.add(path.join(userProfile, "OneDrive", "Documents", CONFIG_FILE_NAME));
+      candidates.add(path.join(userProfile, "Documents", SYNC_CONFIG_FILE_NAME));
+      candidates.add(path.join(userProfile, "OneDrive", "Documents", SYNC_CONFIG_FILE_NAME));
     }
   }
 
@@ -69,14 +100,14 @@ function readConfigFromAnyLocation(): string | null {
 }
 
 function resolveCommandsDir(): string {
-  // 1. Primary: AE_MCP_COMMANDS_DIR (explicit user override)
-  const envOverride = process.env.AE_MCP_COMMANDS_DIR;
-  if (envOverride && envOverride.trim().length > 0) {
-    const resolved = path.resolve(envOverride.trim());
+  // 1. Primary: project config file (friendly for users/agents)
+  const projectConfigDir = readCommandsDirFromProjectConfig();
+  if (projectConfigDir) {
+    const resolved = path.resolve(projectConfigDir);
     writeConfigToAllLocations(resolved);
     return resolved;
   }
-  // 2. Fallback: config file (so CEP panel can share the same override)
+  // 2. Fallback: synced Documents config file (shared with CEP panel)
   const configContent = readConfigFromAnyLocation();
   if (configContent) return path.resolve(configContent);
   // 3. Default: platform Documents folder

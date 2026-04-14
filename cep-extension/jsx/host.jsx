@@ -172,7 +172,7 @@
 /** Name of the commands directory (inside user's Documents folder). */
 var COMMANDS_FOLDER_NAME = "ae-mcp-commands";
 
-/** Config file in Documents that overrides the commands path (synced from AE_MCP_COMMANDS_DIR). */
+/** Config file in Documents that overrides the commands path (synced by Node). */
 var COMMANDS_DIR_CONFIG_FILE = "ae-mcp-commands-dir.txt";
 
 /** Cached Folder reference, created by initBridge(). */
@@ -180,7 +180,7 @@ var commandsFolder = null;
 
 /**
  * Resolves the commands folder path. Same strategy as the MCP server:
- * 1. Primary: AE_MCP_COMMANDS_DIR override (via config file written by Node when env is set)
+ * 1. Primary: synced config file written by Node (from ae-mcp.config.json)
  * 2. Fallback: Documents/ae-mcp-commands
  */
 function getCommandsFolderPath() {
