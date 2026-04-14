@@ -23,25 +23,26 @@ AI-powered motion design automation for Adobe After Effects. Connect Claude, Cur
 
 - **Adobe After Effects** 2022 (v22) or later
 - **Node.js** 18+
+- **pnpm** — [install pnpm](https://pnpm.io/installation); this repo uses `pnpm-lock.yaml` and `packageManager` in `package.json` (Corepack-compatible)
 - **macOS** or **Windows**
 
 ## Quick Start
 
 ```bash
 # 1. Install dependencies
-npm install
+pnpm install
 
 # 2. Build the TypeScript source
-npm run build
+pnpm run build
 
 # 3. Install the CEP extension into After Effects
-npm run install-extension
+pnpm run install-extension
 
 # 4. Restart After Effects, then open the panel:
 #    Window > Extensions > AE MCP Bridge
 
 # 5. Start the MCP server
-npm start
+pnpm start
 ```
 
 ## Configure your AI client
@@ -75,8 +76,6 @@ Add to `.cursor/mcp.json` in your project:
   }
 }
 ```
-
-Cursor users also benefit from the included `.cursorrules` file, which gives the Cursor AI agent deep context about After Effects workflows, tool usage patterns, and motion design best practices.
 
 Replace `/path/to/ae-mcp` with the actual path to this directory.
 
@@ -175,10 +174,10 @@ Command flow:
 
 ```bash
 # Run in dev mode (auto-recompile with tsx)
-npm run dev
+pnpm run dev
 
 # Type-check without building
-npm run typecheck
+pnpm run typecheck
 ```
 
 ## Architecture
@@ -225,7 +224,7 @@ ae-mcp/
 |-- scripts/
 |   |-- install-extension.js
 |   `-- check-readme-tools.js
-|-- .cursorrules
+|-- .env.example
 |-- package.json
 |-- tsconfig.json
 `-- README.md
@@ -237,10 +236,10 @@ ae-mcp/
 - Make sure After Effects is running
 - Open the panel: **Window > Extensions > AE MCP Bridge**
 - The panel should show "Waiting for commands..."
-- If the panel doesn't appear, re-run `npm run install-extension` and restart AE
+- If the panel doesn't appear, re-run `pnpm run install-extension` and restart AE
 
 ### Panel doesn't appear in Window > Extensions
-- Make sure you ran `npm run install-extension` (it enables PlayerDebugMode)
+- Make sure you ran `pnpm run install-extension` (it enables PlayerDebugMode)
 - Restart After Effects completely (not just close/reopen the project)
 - On macOS, check: `~/Library/Application Support/Adobe/CEP/extensions/com.motiona.ae-mcp/`
 - On Windows, check: `%APPDATA%/Adobe/CEP/extensions/com.motiona.ae-mcp/`

@@ -7,7 +7,7 @@
  *
  * Usage:
  *   node scripts/install-extension.js          (auto-detects OS)
- *   npm run install-extension                  (via package.json)
+ *   pnpm run install-extension                 (via package.json)
  *
  * On macOS:   ~/Library/Application Support/Adobe/CEP/extensions/com.motiona.ae-mcp
  * On Windows: %APPDATA%/Adobe/CEP/extensions/com.motiona.ae-mcp
@@ -149,7 +149,7 @@ function main() {
   console.log("  1. Restart After Effects (if it's running)");
   console.log("  2. Go to Window > Extensions > AE MCP Bridge");
   console.log("  3. The panel should show 'Waiting for commands...'");
-  console.log("  4. Start the MCP server:  npm start");
+  console.log("  4. Start the MCP server:  pnpm start");
   console.log("════════════════════════════════════════════");
 }
 

@@ -1,6 +1,7 @@
 {
   "name": "ae-mcp",
   "version": "2.0.0",
+  "packageManager": "pnpm@10.33.0",
   "description": "After Effects MCP Server - AI-powered motion design automation",
   "type": "module",
   "main": "dist/index.js",
@@ -18,7 +19,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "ae-mcp": "link:",
     "dotenv": "^17.3.1",
     "zod": "^3.22.0"
   },
